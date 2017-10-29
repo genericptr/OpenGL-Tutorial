@@ -104,8 +104,8 @@ type
 			v: array of TVertexType;
 			ind: array of TVertexIndex;
 		public
-			{class function MakeCube: TMesh; static; inline;
-			class function MakePlane: TMesh; static; inline;
+			class function MakeCube (size: Glfloat = 100): TMesh; static; inline;
+			{class function MakePlane: TMesh; static; inline;
 			class function MakeFlatPlane: TMesh; static; inline;
 			class function MakeQuad (rect: TRect): TMesh; static; inline;}
 			
@@ -158,7 +158,7 @@ type
 			shader: TShader;
 			id: integer;
 		public
-			constructor Create (_mesh: TMesh; _material: TMaterial; _shader: TShader; _id: integer = -1); overload;
+			constructor Create (constref _mesh: TMesh; constref _material: TMaterial; _shader: TShader; _id: integer = -1); overload;
 			procedure Prepare;
 			procedure Draw;
 			procedure Bind;
@@ -492,7 +492,7 @@ end;
 var
 	GlobalModelIDIndex: integer = 0;
 
-constructor TModel.Create (_mesh: TMesh; _material: TMaterial; _shader: TShader; _id: integer = -1);
+constructor TModel.Create (constref _mesh: TMesh; constref _material: TMaterial; _shader: TShader; _id: integer = -1);
 begin
 	mesh := _mesh;
 	material := _material;
@@ -603,6 +603,65 @@ begin
 	FillChar(ind[0], Sizeof(TVertexIndex) * Length(ind), 0);
 end;
 
+class function TMesh.MakeCube (size: Glfloat = 100): TMesh;
+var
+	stackIndices: array[0..35] of TMesh.TVertexIndex = (
+		0,   1,  2,  0,  2,  3, // Top
+		4,   5,  6,  4,  6,  7, // Front
+		8,   9, 10,  8, 10, 11, // Right
+		12, 13, 14, 12, 14, 15, // Left
+		16, 17, 18, 16, 18, 19, // Back
+		20, 22, 21, 20, 23, 22 	// Bottom
+	);
+	i: integer;
+	mesh: TMesh;
+begin
+	mesh := TMesh.Create([3]);
+	
+	// TODO: if we know the vertex size (3 in this case)
+	// we can add an attribute at an index (i * vertexSize) + the offsets
+	// mesh.SetVerticies(24)
+	// mesh.SetVertexAttribute(0, TVec3.Make(-size, +size, +size));
+	// mesh.SetVertexAttribute(1, TVec3.Make(-size, +size, +size));
+	// mesh.SetVertexAttribute(2, TVec3.Make(-size, +size, +size));
+	// mesh.SetVertexAttribute(3, TVec3.Make(-size, +size, +size));
+	
+	mesh.AddVertexAttribute(TVec3.Make(-size, +size, +size));
+	mesh.AddVertexAttribute(TVec3.Make(+size, +size, +size));
+	mesh.AddVertexAttribute(TVec3.Make(+size, +size, -size));
+	mesh.AddVertexAttribute(TVec3.Make(-size, +size, -size));
+	           
+	mesh.AddVertexAttribute(TVec3.Make(-size, +size, -size));
+	mesh.AddVertexAttribute(TVec3.Make(+size, +size, -size));
+	mesh.AddVertexAttribute(TVec3.Make(+size, -size, -size));
+	mesh.AddVertexAttribute(TVec3.Make(-size, -size, -size));
+	           
+	mesh.AddVertexAttribute(TVec3.Make(+size, +size, -size));
+	mesh.AddVertexAttribute(TVec3.Make(+size, +size, +size));
+	mesh.AddVertexAttribute(TVec3.Make(+size, -size, +size));
+	mesh.AddVertexAttribute(TVec3.Make(+size, -size, -size));
+	                                                            
+	mesh.AddVertexAttribute(TVec3.Make(-size, +size, +size));
+	mesh.AddVertexAttribute(TVec3.Make(-size, +size, -size));
+	mesh.AddVertexAttribute(TVec3.Make(-size, -size, -size));
+	mesh.AddVertexAttribute(TVec3.Make(-size, -size, +size));
+	                                                            
+	mesh.AddVertexAttribute(TVec3.Make(+size, +size, +size));
+	mesh.AddVertexAttribute(TVec3.Make(-size, +size, +size));
+	mesh.AddVertexAttribute(TVec3.Make(-size, -size, +size));
+	mesh.AddVertexAttribute(TVec3.Make(+size, -size, +size));
+	                                                            
+	mesh.AddVertexAttribute(TVec3.Make(+size, -size, -size));
+	mesh.AddVertexAttribute(TVec3.Make(-size, -size, -size));
+	mesh.AddVertexAttribute(TVec3.Make(-size, -size, +size));
+	mesh.AddVertexAttribute(TVec3.Make(+size, -size, +size));
+	
+	mesh.SetIndicies(length(stackIndices));
+	mesh.ind := stackIndices;
+	
+	result := mesh;
+end;
+
 {
 class function TMesh.MakeCube: TMesh;
 var
@@ -700,6 +759,7 @@ begin
 	result.ind := stackIndices;
 end;
 
+
 class function TMesh.MakeQuad (rect: TRect): TMesh;
 var
 	stackIndices: array[0..5] of TVertexIndex = (
@@ -716,7 +776,9 @@ begin
 	SetLength(result.ind, Length(stackIndices));
 	result.ind := stackIndices;
 end;
+}
 
+{
 class function TMesh.MakePlane: TMesh;
 var
 	stackIndices: array[0..5] of TVertexIndex = (
@@ -959,7 +1021,7 @@ end;
 
 function TOBJVertex.IsSet: boolean;
 begin
-	result := (textureIndex <> NO_INDEX) and (normalIndex <> NO_INDEX);
+	result := (textureIndex <> NO_INDEX) or (normalIndex <> NO_INDEX);
 end;
 
 function TOBJVertex.HasSameTextureAndNormal (textureIndexOther, normalIndexOther: integer): boolean; 
@@ -1140,17 +1202,20 @@ begin
 				vertex.AverageTangents;
 			if not vertex.IsSet then
 				begin
-					vertex.textureIndex := 0;
-					vertex.normalIndex := 0;
+					vertex.textureIndex := TOBJVertex.NO_INDEX;
+					vertex.normalIndex := TOBJVertex.NO_INDEX;
 				end;
 		end;
 	
 	for vertex in vertices do
+	if vertex.IsSet then
 		begin
 			newVertex := Default(TVertex3);
 			newVertex.pos := vertex.position;
-			newVertex.tex := textures[vertex.textureIndex];
-			newVertex.nrm := normals[vertex.normalIndex];
+			if textures.Count > 0 then
+				newVertex.tex := textures[vertex.textureIndex];
+			if normals.Count > 0 then
+				newVertex.nrm := normals[vertex.normalIndex];
 			newVertex.tan := vertex.averagedTangent;
 			mesh.AddVertex(newVertex);	
 			
@@ -1192,6 +1257,7 @@ end;
 procedure TCamera.UpdateMatrix; 
 begin
 	m_worldToViewMatrix := TMat4.LookAt(position, position + viewDirection, TVec3.Up);
+	//m_worldToViewMatrix := TMat4.Identity;
 end;
 
 procedure TCamera.ZoomBy (amount: TScalar);

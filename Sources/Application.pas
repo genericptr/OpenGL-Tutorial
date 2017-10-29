@@ -81,13 +81,14 @@ end;
 procedure TGameWindow.Update;
 var
 	model: TModel;
-	modelTransform: TMat4;
 	viewTransform: TMat4;
+	modelTransform: TMat4;
+	rotation: TVec3;
 begin
 	glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT);
 	
 	UpdateCameraKeys(camera);
-	renderer.Render(camera);
+	renderer.Render(camera.WorldToViewMatrix);
 	
 	// TODO: does this need to be part of a renderer class?
 	model := terrain.model;
@@ -221,7 +222,8 @@ var
 	material: TMaterial;
 	entity: TEntity;
 	position: TVec3;
-	
+	rotation: TVec3;
+
 	// TODO: environment
 	sunColor: TVec3;
 	skyColor: TVec3;
@@ -237,25 +239,24 @@ var
 	
 	tree_1: TModel;
 	lamp: TModel;
-	stall: TModel;
-	dragon: TModel;
 	barrel: TModel;
 begin
 	System.Randomize;
 	RandSeed := 1000;
 
 	// NOTE: why do we need to do set this now??
-	SetBasePath('Resources');
+	//SetBasePath('Resources');
 
 	// prepare opengl
 	glClearColor(0, 0.5, 0.5, 1);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);	
-	
+	//glEnable(GL_CULL_FACE);
+	//glCullFace(GL_BACK);
 	camera.Reset;
 	camera.position := Vec3(5, 5, 20);
 	projTransform := TMat4.Perspective(60.0, 500 / 500, 0.1, 200.0);
-		
+
 	// TODO: TEnvironment
 	sunColor := Vec3(1);
 	skyColor := Vec3(0.5, 0.7, 0.7) * sunColor;
@@ -332,51 +333,33 @@ begin
 	sky_shader.SetUniformVec3('skyColor', skyColor);
 	
 	renderer := TRenderer.Create;
-	
-	{mesh := TMesh.LoadOBJModel(GetDataFile('dragon.obj'));
-	material := TMaterial.Create(1, 0.25, 0);
-	dragon := TModel.Create(mesh, material, simple_shader);
-	dragon.Prepare;}
-	
-	{mesh := TMesh.LoadOBJModel('/Users/ryanjoseph/Desktop/Projects/Games/Minecraft/Models/stall/stall.obj');
-	texture := TTexture2D.Create(GetDataFile('stallTexture.png'), GL_LINEAR);
-	material := TMaterial.Create(1, 0.25, texture.texture);
-	stall := TModel.Create(mesh, material, simple_shader);
-	stall.Prepare;}
-
-	{mesh := TMesh.LoadOBJModel('/Users/ryanjoseph/Desktop/Projects/Games/Minecraft/Models/Monkey/monkey.obj');
-	texture := TTexture2D.Create('/Users/ryanjoseph/Desktop/Projects/Games/Minecraft/Models/Monkey/head_texture_1.png', GL_LINEAR);
-	material := TMaterial.Create(1, 0.25, texture.texture);
-	monkey := TModel.Create(mesh, material, simple_shader);
-	monkey.Prepare;}
-
 
 	mesh := MakeSkyBox(100);
-	cubemap := TTextureCubeMap.Create('/Users/ryanjoseph/Desktop/Projects/Games/Minecraft/res', ['right.png', 'left.png', 'top.png', 'bottom.png', 'back.png', 'front.png'], GL_LINEAR);	
+	cubemap := TTextureCubeMap.Create(GetDataFile('/res'), ['right.png', 'left.png', 'top.png', 'bottom.png', 'back.png', 'front.png'], GL_LINEAR);	
 	material := TMaterial.Create(1, 0.25, [cubemap]);
 	skybox := TModel.Create(mesh, material, sky_shader);
 	skybox.Prepare;
 
-	mesh := TMesh.LoadOBJModel('/Users/ryanjoseph/Desktop/Projects/Games/Minecraft/Models/Tree_1/Tree_1.obj');
-	texture := TTexture2D.Create('/Users/ryanjoseph/Desktop/Projects/Games/Minecraft/Models/Tree_1/texture.png', GL_LINEAR);	
+	mesh := TMesh.LoadOBJModel(GetDataFile('/res/Tree_1.obj'));
+	texture := TTexture2D.Create(GetDataFile('/res/texture.png'), GL_LINEAR);	
 	material := TMaterial.Create(1, 0.25, [texture]);
 	tree_1 := TModel.Create(mesh, material, simple_shader);
 	tree_1.Prepare;
 
-	mesh := TMesh.LoadOBJModel('/Users/ryanjoseph/Desktop/Projects/Games/Minecraft/res/lamp.obj');
-	texture := TTexture2D.Create('/Users/ryanjoseph/Desktop/Projects/Games/Minecraft/res/lamp.png', GL_LINEAR);	
+	mesh := TMesh.LoadOBJModel(GetDataFile('/res/lamp.obj'));
+	texture := TTexture2D.Create(GetDataFile('/res/lamp.png'), GL_LINEAR);	
 	material := TMaterial.Create(1, 0.25, [texture]);
 	lamp := TModel.Create(mesh, material, simple_shader);
 	lamp.Prepare;
 
-	mesh := TMesh.LoadOBJModel('/Users/ryanjoseph/Desktop/Projects/Games/Minecraft/res/barrel.obj', true);
-	texture := TTexture2D.Create('/Users/ryanjoseph/Desktop/Projects/Games/Minecraft/res/barrel.png', GL_LINEAR);	
-	normalMap := TTexture2D.Create('/Users/ryanjoseph/Desktop/Projects/Games/Minecraft/res/barrelNormal.png', GL_LINEAR, false);	
+	mesh := TMesh.LoadOBJModel(GetDataFile('/res/barrel.obj'), true);
+	texture := TTexture2D.Create(GetDataFile('/res/barrel.png'), GL_LINEAR);	
+	normalMap := TTexture2D.Create(GetDataFile('/res/barrelNormal.png'), GL_LINEAR, false);	
 	material := TMaterial.Create(1, 0.25, [texture, normalMap]);
 	barrel := TModel.Create(mesh, material, normalMap_shader);
 	barrel.Prepare;
 	
-	texture := TTexture2D.Create(GetDataFile('grass.png'), GL_LINEAR);	
+	texture := TTexture2D.Create(GetDataFile('res/grass.png'), GL_LINEAR);	
 	terrain := TTerrain.Create(Vec3(0, 0, 0));
 	terrain.Generate(terrain_shader);
 	terrain.model.material.AddTexture(texture);
@@ -392,7 +375,7 @@ begin
 	entity.position := Vec3(20, 0, 20);
 	entity.scale := 0.25;
 	renderer.AddEntity(entity);
-	
+
 	for i := 0 to 60 do
 		begin
 			entity := TEntity.Create(tree_1);
@@ -404,27 +387,6 @@ begin
 			entity.rotation := Vec3(0, Random(360), 0);
 			renderer.AddEntity(entity);
 		end;
-	{for i := 0 to 10 do
-		begin
-			entity := TEntity.Create(dragon);
-			entity.position := Vec3(GetRandomNumber(-kMaxDist, kMaxDist), GetRandomNumber(0, kMaxDist), GetRandomNumber(-kMaxDist*2, 0));
-			renderer.AddEntity(entity);
-			entity.Release;
-		end;}
-	
-	// load textures
-	//image := LoadTextureFromFile(GetDataFile('gem.png'));	
-		
-	// setup world
-	{cube := TModel.Create(TMesh.MakeCube, image.texture, shader);
-	for i := 0 to high(cube.mesh.v) div 4 do
-		begin
-			cube.mesh.v[(i*4)+0].tex := Vec2(0, 1);
-			cube.mesh.v[(i*4)+1].tex := Vec2(1, 1);
-			cube.mesh.v[(i*4)+2].tex := Vec2(1, 0);
-			cube.mesh.v[(i*4)+3].tex := Vec2(0, 0);
-		end;
-	cube.Prepare;}
 end;
 
 end.

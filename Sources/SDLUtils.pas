@@ -10,17 +10,6 @@ uses
 const
 	kSDLOpenGLWindow_Modern = true;	
 	kSDLOpenGLWindow_Legacy = false;	
-	
-type
-	SDLWindowDrawCallback = procedure (renderer: PSDL_Renderer; context: pointer);
-	SDLWindowGotEventCallback = procedure (event: TSDL_Event; context: pointer);
-	
-type
-	SDLWindowCallbacks = record
-		draw: SDLWindowDrawCallback;
-		event: SDLWindowGotEventCallback;
-		context: pointer;
-	end;
 
 type
 	TSDLOpenGLWindow = class (TObject)
@@ -64,9 +53,6 @@ type
 			renderer: PSDL_Renderer;
 			windowSize: TSize;
 	end;
-
-procedure SDLDisplayWindow (x, y, width, height: integer; zoom: single; callbacks: SDLWindowCallbacks);
-function SDLNewWindow (x, y, width, height: integer; zoom: single; callbacks: SDLWindowCallbacks): PSDL_Window;
 
 function GetDataFile (name: string): string;
 procedure SetBasePath (name: string);
@@ -164,7 +150,10 @@ begin
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, value);	
 			writeln('SDL_GL_CONTEXT_MINOR_VERSION: ', value);}
 		end;
-			
+	
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
 	// create window	
 	window := SDL_CreateWindow('SDL Tutorial', SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN + SDL_WINDOW_OPENGL + SDL_WINDOW_RESIZABLE);
 	if window = nil then
@@ -407,108 +396,6 @@ end;
 
 procedure TSDLBitmapWindow.HandleEvent (event: TSDL_Event);
 begin
-end;
-
-{=============================================}
-{@! ___SDL SUFRACE___ } 
-{=============================================}
-
-{type
-	TSDLApp = class (TObject)
-		public
-			constructor Create;
-			function NewWindow (width, height: integer; zoom: single = 1.0): PSDL_Window;
-			procedure RunMainLoop;
-	end;
-
-function TSDLApp.NewWindow (width, height: integer; zoom: single = 1.0): PSDL_Window;
-begin
-	
-end;
-
-procedure TSDLApp.RunMainLoop;
-var
-	event: TSDL_Event;
-	renderer: PSDL_Renderer;
-	window: PSDL_Window;
-	surface: PSDL_Surface;
-label
-	Quit;
-begin	
-	while true do
-	while SDL_PollEvent(event) > 0 do
-		begin
-			HandleEvent(event);
-
-			if event.type_ = SDL_WINDOW_EVENT then
-				begin
-					if event.window.event = SDL_WINDOWEVENT_CLOSE then
-						//goto Quit;
-						SDL_DestroyWindow(SDL_GetWindowFromID(event.window.windowID));
-				end
-			else if event.type_ = SDL_QUIT_EVENT then
-				goto Quit;
-		end;
-  
-	Quit:
-	SDL_Quit();
-end;
-
-constructor TSDLApp.Create;
-begin
-	SDL_Init(SDL_INIT_VIDEO);
-end;}
-
-function SDLNewWindow (x, y, width, height: integer; zoom: single; callbacks: SDLWindowCallbacks): PSDL_Window;
-var
-	event: TSDL_Event;
-	renderer: PSDL_Renderer;
-	window: PSDL_Window;
-	surface: PSDL_Surface;
-begin
-  SDL_CreateWindowAndRenderer(trunc(width * zoom), trunc(height * zoom), 0, window, renderer);
-	if x <> -1 then
-		SDL_SetWindowPosition(window, x, y);
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-  SDL_RenderClear(renderer);
-	SDL_RenderSetScale(renderer, zoom, zoom);
-	if callbacks.draw <> nil then
-		begin
-			callbacks.draw(renderer, callbacks.context);
-			SDL_RenderPresent(renderer);
-		end;
-	result := window;
-end;
-
-procedure SDLDisplayWindow (x, y, width, height: integer; zoom: single; callbacks: SDLWindowCallbacks);
-var
-	event: TSDL_Event;
-	renderer: PSDL_Renderer;
-	window: PSDL_Window;
-	surface: PSDL_Surface;
-label
-	Quit;
-begin	
-	SDL_Init(SDL_INIT_VIDEO);
-	window := SDLNewWindow(x, y, width, height, zoom, callbacks);	
-	while true do
-	while SDL_PollEvent(event) > 0 do
-		begin
-			if callbacks.event <> nil then
-				callbacks.event(event, callbacks.context);
-
-			if event.type_ = SDL_WINDOW_EVENT then
-				begin
-					if event.window.event = SDL_WINDOWEVENT_CLOSE then
-						//goto Quit;
-						SDL_DestroyWindow(SDL_GetWindowFromID(event.window.windowID));
-				end
-			else if event.type_ = SDL_QUIT_EVENT then
-				goto Quit;
-		end;
-	Quit:
-	SDL_Quit();
 end;
 
 begin

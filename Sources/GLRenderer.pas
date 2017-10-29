@@ -12,7 +12,7 @@ type
 		public
 			constructor Create;
 			procedure AddEntity (entity: TEntity);
-			procedure Render (camera: TCamera);
+			procedure Render (constref viewTransform: TMat4);
 		private type TEntityArray = specialize TGenericFixedArray<TArray>;
 		private
 			entities: TEntityArray;
@@ -22,7 +22,7 @@ implementation
 
 constructor TRenderer.Create;
 begin
-	entities := TEntityArray.Create(4);
+	entities := TEntityArray.Create(100);
 	Initialize;
 end;
 
@@ -34,9 +34,8 @@ begin
 	entities[entity.model.id].AddValue(entity);
 end;
 
-procedure TRenderer.Render (camera: TCamera);
+procedure TRenderer.Render (constref viewTransform: TMat4);
 var
-	viewTransform: TMat4;
 	modelTransform: TMat4;
 	lightPosition: TVec3;
 	entity: TEntity;
@@ -45,7 +44,6 @@ var
 	shader: TShader;
 	i: integer;
 begin
-	viewTransform := camera.WorldToViewMatrix;
 	shader := nil;
 	
 	for pointer(list) in entities do
