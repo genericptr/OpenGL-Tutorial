@@ -9,3 +9,5 @@ Features:
 - Skybox
 - Fog
 - Normal maps
+
+![Screenshot](/res/screen.jpg)
