@@ -10,4 +10,6 @@ Features:
 - Fog
 - Normal maps
 
-![Screenshot](/res/screen.jpg)
+NOTE: compile with ppc386 unless you can fix the bug in terrain genration for ppcx64
+
+![Screenshot](/Res/screen.jpg)
