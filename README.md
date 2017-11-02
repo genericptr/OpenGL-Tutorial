@@ -12,6 +12,4 @@ Features:
 
 Most of this is me following along with ThinMatrix's excellent Java tutorial on YouTube which I strongly recommend watching. In particular the OBJ loader was translated from his code.https://www.youtube.com/watch?v=VS8wlS9hF8E&list=PLRIWtICgwaX0u7Rf9zkZhLoLuZVfUksDP
 
-NOTE: compile with ppc386 unless you can fix the bug in terrain genration for ppcx64
-
 ![Screenshot](/Res/screen.jpg)
