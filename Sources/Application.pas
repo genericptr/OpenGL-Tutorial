@@ -86,7 +86,11 @@ var
 	rotation: TVec3;
 begin
 	glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT);
-	
+	//b Application.pas:88
+	//fr v *MODEL
+	//fr v *MODEL->SHADER
+	///Applications/Xcode.app/Contents/Developer/usr/bin/lldb-mi
+
 	UpdateCameraKeys(camera);
 	renderer.Render(camera.WorldToViewMatrix);
 	

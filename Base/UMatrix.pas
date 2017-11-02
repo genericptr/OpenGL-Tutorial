@@ -13,27 +13,24 @@ type
 		function GetTileCoord: TPoint3D;
 	end;
 
-
 type
 	generic TGenericMatrix<T> = class (TObject)
-		public
-			type
-				TMatrixTable = array[0..0] of T;
-				TMatrixTablePtr = ^TMatrixTable;
-				TMatrixIndex = LongInt;
-		private
-			type
-				TMatrixEnumerator = class
-					private
-						root: TGenericMatrix;
-						currentValue: T;
-						x, y, z: TMatrixIndex;
-					public
-						constructor Create(_root: TGenericMatrix); 
-						function MoveNext: Boolean;
-						procedure Reset;
-						property Current: T read currentValue;
-				end;
+		public type
+			TMatrixTable = array[0..0] of T;
+			TMatrixTablePtr = ^TMatrixTable;
+			TMatrixIndex = LongInt;
+		private type
+			TMatrixEnumerator = class
+				private
+					root: TGenericMatrix;
+					currentValue: T;
+					x, y, z: TMatrixIndex;
+				public
+					constructor Create(_root: TGenericMatrix); 
+					function MoveNext: Boolean;
+					procedure Reset;
+					property Current: T read currentValue;
+			end;
 		public
 			
 			{ Constructors }
@@ -50,8 +47,15 @@ type
 			{ Getting Values }
 			function GetValue (tileCoord: TPoint3D): T; overload;
 			function GetValue (x, y, z: TMatrixIndex): T; overload;			
+			function GetValue (x, y: TMatrixIndex): T; overload;			
 			function GetValue (region: TRect3D; contiguous: boolean): T; overload;
-			function GetValuePtr (x, y, z: TMatrixIndex): Pointer;
+			function GetValuePtr (x, y, z: TMatrixIndex): Pointer; overload;
+			function GetValuePtr (tileCoord: TPoint3D): Pointer; overload;
+			function GetValuePtr (tileCoord: TPoint): Pointer; overload;
+			function GetValueSafe (x, y, z: TMatrixIndex): T; overload;
+			function GetValueSafe (x, y: TMatrixIndex): T; overload;
+			function GetValueSafe (tileCoord: TPoint3D): T; overload;
+			function GetValueSafe (tileCoord: TPoint): T; overload;
 			function IsValidTileCoord (tileCoord: TPoint3D): boolean; overload;
 			function IsValidTileCoord (x, y, z: TMatrixIndex): boolean;
 
@@ -70,6 +74,10 @@ type
 			procedure SetValue (tileCoord: TPoint3D; newValue: T); overload;
 			procedure SetValue (x, y, z: TMatrixIndex; newValue: T); overload;
 			procedure SetValue (rect: TRect3D; newValue: T); overload;
+			procedure SetValue (rect: TRect; newValue: T); overload;
+			procedure SetValueSafe (rect: TRect3D; newValue: T); overload;
+			procedure SetValueSafe (rect: TRect; newValue: T); overload;
+			procedure Fill (newValue: T);
 			
 			{ Removing Values }
 			procedure RemoveValue (tileCoord: TPoint3D); overload;
@@ -84,7 +92,7 @@ type
 			procedure Show; override;
 		
 		public
-			property MatrixValues[const x,y,z:TMatrixIndex]:T read GetValue; default;	
+			property MatrixValues[const x,y,z:TMatrixIndex]:T read GetValue write SetValue; default;
 		protected
 			procedure Initialize; override;
 			procedure Deallocate; override;
@@ -117,15 +125,20 @@ type
 	TStringMatrix = specialize TGenericMatrix<String>;
 	TSingleMatrix = specialize TGenericMatrix<Single>;
 	TDoubleMatrix = specialize TGenericMatrix<Double>;
+	TFloatMatrix = specialize TGenericMatrix<TFloat>;
 	TPointerMatrix = specialize TGenericMatrix<Pointer>;
 	TBooleanMatrix = specialize TGenericMatrix<Boolean>;
 	TMatrix = specialize TGenericMatrix<TObject>;
+
+type
+	TPointMatrix = specialize TGenericMatrix<TPoint>;
+	TPoint3DMatrix = specialize TGenericMatrix<TPoint3D>;
 	
 type
 	TMatrixTilesArray = array[0..7] of TPoint3D;
 	
-procedure MatrixNeighborsDiagonal (tileCoord: TPoint3D; var tileCoords: TMatrixTilesArray); overload;
-procedure MatrixNeighborsDiagonal (tileCoord: TPoint3D; diagonal: boolean; var tileCoords: TPoint3DArray); overload;
+procedure MatrixNeighbors (tileCoord: TPoint3D; diagonal: boolean; var tileCoords: TMatrixTilesArray); overload;
+procedure MatrixNeighbors (tileCoord: TPoint3D; diagonal: boolean; var tileCoords: TPoint3DArray); overload;
 	
 implementation
 
@@ -133,20 +146,23 @@ implementation
 {@! ___UTILITIES___ } 
 {=============================================}
 
-procedure MatrixNeighborsDiagonal (tileCoord: TPoint3D; var tileCoords: TMatrixTilesArray);
+procedure MatrixNeighbors (tileCoord: TPoint3D; diagonal: boolean; var tileCoords: TMatrixTilesArray);
 begin
 	tileCoords[0] := tileCoord.Offset(-1, 0, 0);
 	tileCoords[1] := tileCoord.Offset(1, 0, 0);
 	tileCoords[2] := tileCoord.Offset(0, -1, 0);
 	tileCoords[3] := tileCoord.Offset(0, 1, 0);
 	
-	tileCoords[4] := tileCoord.Offset(-1, -1, 0);
-	tileCoords[5] := tileCoord.Offset(-1, 1, 0);
-	tileCoords[6] := tileCoord.Offset(1, -1, 0);
-	tileCoords[7] := tileCoord.Offset(1, 1, 0);
+	if diagonal then
+		begin
+			tileCoords[4] := tileCoord.Offset(-1, -1, 0);
+			tileCoords[5] := tileCoord.Offset(-1, 1, 0);
+			tileCoords[6] := tileCoord.Offset(1, -1, 0);
+			tileCoords[7] := tileCoord.Offset(1, 1, 0);
+		end;
 end;
 
-procedure MatrixNeighborsDiagonal (tileCoord: TPoint3D; diagonal: boolean; var tileCoords: TPoint3DArray);
+procedure MatrixNeighbors (tileCoord: TPoint3D; diagonal: boolean; var tileCoords: TPoint3DArray);
 var
 	neighbor: TPoint3D;
 begin
@@ -179,7 +195,7 @@ begin
 	inherited Create;
 	root := _root;
 end;
-
+	
 function TGenericMatrix.TMatrixEnumerator.MoveNext: Boolean;
 var
 	gridSize: TSize3D;
@@ -267,6 +283,11 @@ begin
 		result := Default(T);
 end;
 
+function TGenericMatrix.GetValue (x, y: TMatrixIndex): T;
+begin
+	result := Getvalue(x, y, 0);
+end;
+
 function TGenericMatrix.GetValue (tileCoord: TPoint3D): T;
 begin
 	result := GetValue(tileCoord.x.Long, tileCoord.y.Long, tileCoord.z.Long);
@@ -332,9 +353,42 @@ begin
 		result := nil;
 end;
 
+function TGenericMatrix.GetValuePtr (tileCoord: TPoint3D): Pointer;
+begin
+	result := GetValuePtr(tileCoord.x.int, tileCoord.y.int, tileCoord.z.int);
+end;
+
+function TGenericMatrix.GetValuePtr (tileCoord: TPoint): Pointer;
+begin
+	result := GetValuePtr(tileCoord.x.int, tileCoord.y.int, 0);
+end;
+
 function TGenericMatrix.GetValue (tileCoord: TPoint): T;
 begin
 	result := GetValue(PointMake(tileCoord.x, tileCoord.y, 0));
+end;
+
+function TGenericMatrix.GetValueSafe (x, y, z: TMatrixIndex): T;
+begin
+	if IsValidTileCoord(x, y, z) then
+		result := _table^[GetIndexOfPosition(x, y, z)]
+	else
+		result := Default(T);
+end;
+
+function TGenericMatrix.GetValueSafe (x, y: TMatrixIndex): T;
+begin
+	result := GetValueSafe(x, y, 0);
+end;
+
+function TGenericMatrix.GetValueSafe (tileCoord: TPoint3D): T;
+begin
+	result := GetValueSafe(tileCoord.x.int, tileCoord.y.int, tileCoord.z.int);
+end;
+
+function TGenericMatrix.GetValueSafe (tileCoord: TPoint): T;
+begin
+	result := GetValueSafe(tileCoord.x.int, tileCoord.y.int, 0);
 end;
 
 function TGenericMatrix.GetIndexOfPosition (x, y, z: TMatrixIndex): TMatrixIndex;
@@ -386,7 +440,7 @@ end;
 procedure TGenericMatrix.SetValue (x, y, z: TMatrixIndex; newValue: T);
 begin
 	if not IsValidTileCoord(x, y, z) then
-		Fatal('Tile coord '+PointMake(x, y, z).Str+' is invalid ('+gridSize.Str+')');
+		Fatal('Tile coord '+PointMake(x, y, z).Str+' is out of bounds ('+gridSize.Str+')');
 	SetValue(GetIndexOfPosition(x, y, z), newValue);
 end;
 
@@ -403,6 +457,46 @@ begin
 	for x := rect.MinX.Long to rect.MaxX.Long do
 	for y := rect.MinY.Long to rect.MaxY.Long do
 	for z := rect.MinZ.Long to rect.MaxZ.Long do
+		SetValue(x, y, z, newValue);
+end;
+
+procedure TGenericMatrix.SetValue (rect: TRect; newValue: T);
+var
+	x, y: TMatrixIndex;
+begin
+	for x := rect.GetMinX.Long to rect.GetMaxX.Long do
+	for y := rect.GetMinY.Long to rect.GetMaxY.Long do
+		SetValue(x, y, 0, newValue);
+end;
+
+procedure TGenericMatrix.SetValueSafe (rect: TRect3D; newValue: T);
+var
+	x, y, z: TMatrixIndex;
+begin
+	for x := rect.MinX.Long to rect.MaxX.Long do
+	for y := rect.MinY.Long to rect.MaxY.Long do
+	for z := rect.MinZ.Long to rect.MaxZ.Long do
+	if IsValidTileCoord(x, y, z) then
+		SetValue(GetIndexOfPosition(x, y, z), newValue);
+end;
+
+procedure TGenericMatrix.SetValueSafe (rect: TRect; newValue: T);
+var
+	x, y: TMatrixIndex;
+begin
+	for x := rect.GetMinX.Long to rect.GetMaxX.Long do
+	for y := rect.GetMinY.Long to rect.GetMaxY.Long do
+	if IsValidTileCoord(x, y, 0) then
+		SetValue(GetIndexOfPosition(x, y, 0), newValue);
+end;
+
+procedure TGenericMatrix.Fill (newValue: T);
+var
+	x, y, z: TMatrixIndex;
+begin
+	for x := 0 to HighX do
+	for y := 0 to HighY do
+	for z := 0 to HighZ do
 		SetValue(x, y, z, newValue);
 end;
 
@@ -427,7 +521,7 @@ end;
 procedure TGenericMatrix.RemoveValue (tileCoord: TPoint3D);
 begin
 	if not IsValidTileCoord(tileCoord) then
-		Fatal('Tile coord '+tileCoord.Str+' is invalid ('+gridSize.Str+')');
+		Fatal('Tile coord '+tileCoord.Str+' is out of bounds ('+gridSize.Str+')');
 	SetValue(tileCoord, Default(T));
 end;
 

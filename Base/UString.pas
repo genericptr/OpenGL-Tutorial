@@ -26,11 +26,21 @@ type
 			function GetCharacter (i: integer): char;
 			function GetCString: PChar;
 			
+			{ Modifying }
+			procedure AddLine (str: TStringInternal);
+			procedure Append (str: TStringInternal);
+
+			{ Stream }
+			procedure Open (path: string);
+			procedure Close;
+			procedure Flush;
+
 			{ Methods }
 			function IsEqual (value: TObject): Boolean; override;
 			function Compare (otherString: TString): integer;
 			procedure Show; override;
-			
+			procedure WriteToFile (path: string);
+
 		protected
 			procedure Deallocate; override;
 			procedure CopyInstanceVariables (clone: TObject); override;
@@ -38,18 +48,28 @@ type
 		private
 			ref: TStringInternal;
 			_cString: PChar;
-			
+			fileHandle: TextFile;
+			fileOpen: boolean;
+
 			procedure LoadFromFile (path: string);
 	end;
 
 function TSTR (contents: TStringInternal): TString; overload;
 function SortStringsCallback (value1: TObject; value2: TObject; context: pointer): integer;
 
+operator + (a: TString; b: string): TString; overload;
+
 implementation
 
 {=============================================}
 {@! ___PROCEDURAL___ } 
 {=============================================}
+operator + (a: TString; b: string): TString; overload;
+begin
+	a.AddLine(b);
+	result := a;
+end;
+
 function TSTR (contents: TStringInternal): TString; overload;
 begin
 	result := TString.Instance(contents);
@@ -63,34 +83,95 @@ end;
 {=============================================}
 {@! ___STRING___ } 
 {=============================================}
+
+// http://wiki.freepascal.org/File_Handling_In_Pascal
+
+procedure TString.Open (path: string);
+begin
+	try
+		AssignFile(fileHandle, path);
+		Rewrite(fileHandle);
+		fileOpen := true;
+  except
+    on E:Exception do
+      writeln(path+': '+E.Message);
+  end;
+end;
+
+procedure TString.Close;
+begin
+	CloseFile(fileHandle);
+	fileOpen := false;
+end;
+
+procedure TString.Flush;
+begin
+	System.Flush(fileHandle);
+end;
+
+
 procedure TString.LoadFromFile (path: string);
 var
-	f: File;
+	f: TextFile;
 	bytes: pointer;
+	s: string;
+begin
+	try
+		//AssignFile(f, path);
+		//FileMode := fmOpenRead;
+		//Reset(f, 1);
+		//bytes := GetMem(FileSize(f));
+		//BlockRead(f, bytes^, FileSize(f));
+		//if MemSize(bytes) > 0 then
+		//	begin
+		//		ref := StrPas(pchar(bytes));
+		//		SetLength(ref, FileSize(f));
+		//	end;
+		//CloseFile(f);
+		//FreeMem(bytes);
+		AssignFile(f, path);
+		Reset(f);
+		while not Eof(f) do
+			begin
+				Readln(f, s);
+				AddLine(s);
+			end;
+		CloseFile(f);
+  except
+    on E:Exception do
+      writeln(path+': ', E.Message);
+  end;
+end;
+
+procedure TString.AddLine (str: TStringInternal);
+begin
+	ref += str+#10;
+	if fileOpen then
+		Writeln(fileHandle, str);
+end;
+
+procedure TString.Append (str: TStringInternal);
+begin
+	ref += str;
+	if fileOpen then
+		Write(fileHandle, str);
+end;
+
+procedure TString.WriteToFile (path: string);
+var
+	f: TextFile;
 begin
 	try
 		AssignFile(f, path);
-		FileMode := fmOpenRead;
-	  Reset(f, 1);
-	  bytes := GetMem(FileSize(f));
-	  BlockRead(f, bytes^, FileSize(f));
-		if MemSize(bytes) > 0 then
-			begin
-				ref := StrPas(pchar(bytes));
-				SetLength(ref, FileSize(f));
-			end;
+	  Rewrite(f);
+	  Write(f, ref);
 	  CloseFile(f);
-		FreeMem(bytes);
-		{Fs   := TFileStream.Create(path, fmOpenRead); 
-		   SetLength(tr, Fs.Size);
-		   Fs.Read(tr[1], Fs.Size);
-		   Showmessage(tr); 
-		   Fs.Free;}
   except
     on E:Exception do
-      writeln('TString.LoadFromFile: ', E.Message);
+      writeln(path, ': ', E.Message);
   end;
 end;
+
 
 procedure TString.CopyInstanceVariables (clone: TObject);
 begin
@@ -175,7 +256,6 @@ class function TString.StringFromFile (path: string): TString;
 begin
 	result := TString.Create;
 	result.LoadFromFile(path);
-	result.AutoRelease;
 end;
 
 begin

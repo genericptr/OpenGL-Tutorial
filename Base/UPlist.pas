@@ -217,7 +217,6 @@ end;
 procedure EncodeNode (parent: TObject; parentNode: TDOMNode; document: TXMLDocument);
 var
 	keys: TDictionaryKeyArray;
-	values: TArrayValues;
 	key: TDictionaryKey;
 	value: TObject;
 	childNode: TDOMNode;
@@ -255,12 +254,9 @@ begin
 		end
 	else if parent.IsMember(TArray) then
 		begin
-			values := TArray(parent).GetAllValues;
-			for i := 0 to high(values) do
+			for i := 0 to TArray(parent).High do
 				begin
-					value := values[i];
-					//writeln(i, ':', value.classname);
-					
+					value := TArray(parent).GetValue(i);
 					if NodeForObject(value, document, valueNode, nodeName) then
 						begin
 							childNode := document.CreateElement(nodeName); 

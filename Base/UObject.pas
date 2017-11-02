@@ -1,10 +1,11 @@
 {$mode objfpc}
 {$interfaces CORBA}
+{$modeswitch advancedrecords}
 
 unit UObject;
 interface
 uses
-	CTypes, SysUtils, Objects, Classes,
+	TypInfo, CTypes, SysUtils, Objects, Classes,
 	UTypes, USystem;
 
 const
@@ -25,23 +26,22 @@ type
 
 { Dispatching }	
 type
-	DispatchMessage = record
+	TDispatchMessage = record
 		method: string;
 		params: pointer;
 	end;
-	DelegateMessage = DispatchMessage;
 
 { Method Pointers }	
 type
-	MethodPointer = procedure(params: pointer) of object;
-	VoidMethodPointer = procedure of object;
+	TMethodPointer = procedure(params: pointer) of object;
+	TVoidMethodPointer = procedure of object;
 	
 type
-	MethodPair = record
+	TNamedMethod = record
 		name: string;
 		func: pointer;
 	end;
-
+	
 type
 	InterfaceUUID = LongInt;
 	
@@ -59,6 +59,18 @@ type
 		function Retain: TObject;
 		procedure Release;
 	end;
+	
+	type
+		TCallback = record
+			private
+				method: pointer;
+				target: TObject;
+				params: pointer;
+			public
+				class function None: TCallback; static; inline;
+				constructor Create (_method: pointer; _target: TObject; _params: pointer = nil);
+				procedure Invoke (_params: pointer = nil); 
+		end;
 			
 	TObject = class (IObject)
 		public
@@ -70,6 +82,7 @@ type
 			constructor Create; virtual;
 			constructor Allocate; virtual;
 			constructor Instance; virtual;
+			constructor WeakInstance; virtual;
 			
 			{ Copying }
 			function Copy: TObject; overload;
@@ -80,18 +93,16 @@ type
 			function DidInitializeFromCopying: boolean;
 				
 			{ Dynamic Calling }
-			function InvokeMethod (name: string): Pointer; overload;
-			function InvokeMethod (name: string; params: Pointer): Pointer; overload;
-			function InvokeMethod (method: Pointer; params: Pointer): Pointer; overload;
-			function InvokeMethod (method: Pointer): Pointer; overload;
+			function InvokeMethod (name: string; params: Pointer = nil): Pointer; overload;
+			function InvokeMethod (method: Pointer; params: Pointer = nil): Pointer; overload;
 			procedure RegisterMethod (name: string; method: Pointer);
 			function FindMethod (name: string): Pointer;
 			function IsMethodRegistered (name: string): boolean;
 							
 			{ Memory Managment }
-			function Retain: TObject; virtual;
-			function AutoRelease: TObject; virtual;
-			procedure Release; virtual;
+			function Retain: TObject;
+			function AutoRelease: TObject;
+			procedure Release;
 			function IsAutoReleasing: boolean;
 			function GetRetainCount: integer;
 			procedure SetRetainCount (newValue: integer);
@@ -127,7 +138,7 @@ type
 			procedure InitializeParameter (index: integer; value: ParameterType); virtual;
 			
 		private
-			registeredMethods: array of MethodPair;
+			registeredMethods: array of TNamedMethod;
 			managedObjects: array of TObject;
 			autoReleaseCount: Word;
 			retainCount: Word;
@@ -151,6 +162,8 @@ type
 		function GetDelegate: TObject;
 	end;
 
+const
+	IHashableUUID = 859276348;
 type
 	IHashable = interface (IObject) ['IHashable']
 		function GetHashString: string;
@@ -175,14 +188,16 @@ function MemberOfClass (obj: TObject; theClass: string): boolean; overload;
 function Transform (obj: TObject; theClass: TClass): TObject;
 function InstanceVarName (theClass: TObjectClass; ivar: string): string;
 procedure InitializeObject (obj: TObject);
+procedure ShowObject (obj: TObject);
+procedure PrintValue (typeKind: TTypeKind; value: pointer); 
 
 procedure DrainAutoReleasePool;
 	
 function GetRandomInterfaceUUID (digits: integer = 9): InterfaceUUID;
 
-// ??? not sure where to put this
-procedure Fatal (messageString: string); overload;
-procedure Fatal (condition: boolean; messageString: string); overload;
+// aliases for Fatal()
+procedure Fatal (messageString: string); overload; inline;
+procedure Fatal (condition: boolean; messageString: string); overload; inline;
 
 implementation
 
@@ -205,9 +220,70 @@ var
 	ShowMemoryNotes: boolean = false;
 	IgnoreClasses: array[1..kIgnoreClassesCount] of string = ('dTDictionary');
 	
+
+{=============================================}
+{@! ___CALLBACK___ } 
+{=============================================}
+
+procedure TCallback.Invoke (_params: pointer = nil); 
+begin
+	if target <> nil then
+		begin
+			if _params = nil then
+				target.InvokeMethod(method, params)
+			else
+				target.InvokeMethod(method, _params);
+		end;
+end;
+
+constructor TCallback.Create (_method: pointer; _target: TObject; _params: pointer = nil);
+begin
+	method := _method;
+	target := _target;
+	params := _params;
+end;
+	
+class function TCallback.None: TCallback;
+begin
+	result := Default(TCallback);
+end;
+	
 {=============================================}
 {@! ___UTILITIES___ } 
-{=============================================}	
+{=============================================}
+procedure PrintValue (typeKind: TTypeKind; value: pointer); 
+begin
+	case typeKind of
+		tkClass:
+			begin
+				if value <> nil then
+					TObjectPtr(value)^.Show
+				else
+					writeln('nil');
+			end;
+		tkPointer:
+			begin
+				if value <> nil then
+					writeln(HexStr(PPointer(value)^))
+				else
+					writeln('nil');
+			end;
+		tkRecord:
+			writeln('record');
+		tkSString:
+			writeln(PShortString(value)^);
+		otherwise
+			writeln(PInteger(value)^); // this is just a hack to print compiler types
+	end;
+end;
+procedure ShowObject (obj: TObject);
+begin
+	if assigned(obj) then
+		obj.show
+	else
+		writeln('nil');
+end;
+
 function GlobalAutoReleasePool: TAutoReleasePoolProtocol; 
 begin
 	if AutoReleasePoolStack.Count > 0 then
@@ -228,20 +304,12 @@ end;
 
 procedure Fatal (messageString: string);
 begin
-	Fatal(true, messageString);
+	USystem.Fatal(true, messageString);
 end;
 
 procedure Fatal (condition: boolean; messageString: string);
 begin
-	if condition then
-		begin
-			// NOTE: exceptions require the following breakpoints to be set in lldb
-			//b FPC_RAISEEXCEPTION
-			//b FPC_BREAK_ERROR
-			//raise Exception.Create(messageString);
-			writeln('***** Exception: ', messageString);
-			halt;//br
-		end;
+	USystem.Fatal(condition, messageString);
 end;
 
 procedure ToggleMemoryNotes;
@@ -433,7 +501,7 @@ end;
 {=============================================}
 
 { Invokes a method directly by function pointer }
-function TObject.InvokeMethod (method: Pointer; params: Pointer): Pointer;
+function TObject.InvokeMethod (method: Pointer; params: Pointer = nil): Pointer;
 begin
 	if params <> nil then
 		result := CallPointerMethod(method, self, params)
@@ -441,23 +509,11 @@ begin
 		result := CallVoidMethod(method, self);
 end;
 
-{ Invokes a void method directly by function pointer }
-function TObject.InvokeMethod (method: Pointer): Pointer;
-begin
-	result := CallVoidMethod(method, self);
-end;
-
-{ Invokes a method by name }
-function TObject.InvokeMethod (name: string): Pointer;
-begin
-	result := InvokeMethod(name, nil);
-end;
-
 { Invokes a method by name with parameter }
-function TObject.InvokeMethod (name: string; params: Pointer): Pointer;
+function TObject.InvokeMethod (name: string; params: Pointer = nil): Pointer;
 var
 	method: Pointer;
-	msg: DispatchMessage;
+	msg: TDispatchMessage;
 begin
 	method := FindMethod(name);
 	if method <> nil then
@@ -473,7 +529,7 @@ end;
 
 procedure TObject.DefaultHandlerStr (var message);
 begin
-	//writeln('Warning: the method ', DispatchMessage(message).method, ' could not be found in ', ClassName, '.');
+	//writeln('Warning: the method ', TDispatchMessage(message).method, ' could not be found in ', ClassName, '.');
 end;
 
 function TObject.IsMethodRegistered (name: string): boolean;
@@ -483,7 +539,7 @@ end;
 
 function TObject.FindMethod (name: string): Pointer;
 var
-	pair: MethodPair;
+	pair: TNamedMethod;
 begin
 	result := nil;
 	for pair in registeredMethods do
@@ -608,6 +664,12 @@ constructor TObject.Instance;
 begin
 	Initialize;
 	AutoRelease;
+end;
+
+constructor TObject.WeakInstance;
+begin
+	Initialize;
+	retainCount := 0;
 end;
 
 { Allocates the object with no initialization }

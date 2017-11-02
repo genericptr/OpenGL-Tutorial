@@ -22,212 +22,234 @@ TTileCoord = TVec3Int
 type
 	TPointPtr = ^TPoint;
 	TPoint = record
-		x: TFloat;
-		y: TFloat;
+		public
+			x: TFloat;
+			y: TFloat;
+		public
+			class function Make (_x, _y: TFloat): TPoint; static; inline;
+			class function Invalid: TPoint; static; inline;
+			class function Zero: TPoint; static; inline;
 		
-		class function Make (_x, _y: TFloat): TPoint; static; inline;
-		class function Invalid: TPoint; static; inline;
-		class function Zero: TPoint; static; inline;
+			{ Angles }
+			class function FromAngleInDegrees (degrees: TFloat): TPoint; static; inline;
+			class function FromAngleInRadians (radians: TFloat): TPoint; static; inline;
 		
-		{ Angles }
-		class function FromAngleInDegrees (degrees, radius: TFloat): TPoint; static; inline;
-		
-		{ Directions }
-		class function Up (_x: TFloat = 0; _y: TFloat = -1): TPoint; static;
-		class function Down (_x: TFloat = 0; _y: TFloat = 1): TPoint; static;
-		class function Left (_x: TFloat = -1; _y: TFloat = 0): TPoint; static;
-		class function Right (_x: TFloat = 1; _y: TFloat = 0): TPoint; static;
-		class function UpLeft (_x: TFloat = -1; _y: TFloat = -1): TPoint; static;
-		class function UpRight (_x: TFloat = 1; _y: TFloat = -1): TPoint; static;
-		class function DownLeft (_x: TFloat = -1; _y: TFloat = 1): TPoint; static;
-		class function DownRight (_x: TFloat = 1; _y: TFloat = 1): TPoint; static;
+			{ Directions }
+			class function Up (_x: TFloat = 0; _y: TFloat = -1): TPoint; static;
+			class function Down (_x: TFloat = 0; _y: TFloat = 1): TPoint; static;
+			class function Left (_x: TFloat = -1; _y: TFloat = 0): TPoint; static;
+			class function Right (_x: TFloat = 1; _y: TFloat = 0): TPoint; static;
+			class function UpLeft (_x: TFloat = -1; _y: TFloat = -1): TPoint; static;
+			class function UpRight (_x: TFloat = 1; _y: TFloat = -1): TPoint; static;
+			class function DownLeft (_x: TFloat = -1; _y: TFloat = 1): TPoint; static;
+			class function DownRight (_x: TFloat = 1; _y: TFloat = 1): TPoint; static;
 			
-		procedure Show;
-		function Str: string;
+			procedure Show;
+			function Str (places: integer = 0): string;
 		
-		function IsZero: boolean;
-		function IsValid: boolean;
-		function IsEqual (point: TPoint): boolean;
-		function Offset (byX, byY: TFloat): TPoint; overload;
-		function Offset (point: TPoint): TPoint; overload;
-		function Floor: TPoint;
-		function Integral: TPoint;
-		function Trunc: TPoint;
-		function Ceil: TPoint;
-		function Round: TPoint;
-		function Abs: TPoint;
-		function IsIntegral: boolean;
-		function Clamp (lowest, highest: TPoint): TPoint; overload;
-		function Clamp (lowest, highest: TFloat): TPoint; overload;
-		procedure SetPoint (_x, _y: TFloat);
+			function IsZero: boolean;
+			function IsValid: boolean;
+			function IsEqual (point: TPoint): boolean;
+			function Offset (byX, byY: TFloat): TPoint; overload;
+			function Offset (point: TPoint): TPoint; overload;
+			function Floor: TPoint;
+			function Integral: TPoint;
+			function Trunc: TPoint;
+			function Ceil: TPoint;
+			function Round: TPoint;
+			function Abs: TPoint;
+			function IsIntegral: boolean;
+			function Clamp (lowest, highest: TPoint): TPoint; overload;
+			function Clamp (lowest, highest: TFloat): TPoint; overload;
+			procedure SetPoint (_x, _y: TFloat);
 		
-		{ Math }
-		function Divide (amount: TFloat): TPoint; overload;
-		function Divide (amount: TPoint): TPoint; overload;
-		function Multiply (amount: TFloat): TPoint; overload;
-		function Multiply (amount: TPoint): TPoint; overload;
-		function Add (amount: TFloat): TPoint; overload;
-		function Add (amount: TPoint): TPoint; overload;
-		function Subtract (amount: TPoint): TPoint; overload;
-		function Subtract (amount: TFloat): TPoint; overload;
+			{ Math }
+			function Divide (amount: TFloat): TPoint; overload;
+			function Divide (amount: TPoint): TPoint; overload;
+			function Multiply (amount: TFloat): TPoint; overload;
+			function Multiply (amount: TPoint): TPoint; overload;
+			function Add (amount: TFloat): TPoint; overload;
+			function Add (amount: TPoint): TPoint; overload;
+			function Subtract (amount: TPoint): TPoint; overload;
+			function Subtract (amount: TFloat): TPoint; overload;
 				
-		{ Operators }
-		class operator + (p1: TPoint; p2: TPointPtr): TPoint; overload;
-		class operator - (p1: TPoint; p2: TPointPtr): TPoint; overload; 
+			{ Operators }
+			class operator + (p1: TPoint; p2: TPointPtr): TPoint; overload;
+			class operator - (p1: TPoint; p2: TPointPtr): TPoint; overload; 
 		
-		class operator + (p1, p2: TPoint): TPoint; overload;
-		class operator - (p1, p2: TPoint): TPoint; overload; 
-		class operator * (p1, p2: TPoint): TPoint; overload; 
-		class operator / (p1, p2: TPoint): TPoint;  overload;
-		class operator = (p1, p2: TPoint): boolean; 
+			class operator + (p1, p2: TPoint): TPoint; overload;
+			class operator - (p1, p2: TPoint): TPoint; overload; 
+			class operator * (p1, p2: TPoint): TPoint; overload; 
+			class operator / (p1, p2: TPoint): TPoint; overload;
+			class operator = (p1, p2: TPoint): boolean; 
 		
-		class operator + (p1: TPoint; p2: TFloat): TPoint; overload; 
-		class operator - (p1: TPoint; p2: TFloat): TPoint; overload; 
-		class operator * (p1: TPoint; p2: TFloat): TPoint; overload; 
-		class operator / (p1: TPoint; p2: TFloat): TPoint; overload;
+			class operator + (p1: TPoint; p2: TFloat): TPoint; overload; 
+			class operator - (p1: TPoint; p2: TFloat): TPoint; overload; 
+			class operator * (p1: TPoint; p2: TFloat): TPoint; overload; 
+			class operator / (p1: TPoint; p2: TFloat): TPoint; overload;
 		
-		{ Vector Helpers }
-		function Magnitude: TFloat;
-		function Distance (point: TPoint): TFloat;
-		function Normalize: TPoint; inline;
-		function Dot (point: TPoint): TFloat; inline;
-		function Negate: TPoint; inline;
-		function PerpendicularRight: TPoint; inline;
-		function PerpendicularLeft: TPoint; inline;
+			{ Vector Helpers }
+			function Magnitude: TFloat;
+			function Distance (point: TPoint): TFloat;
+			function Normalize: TPoint;
+			function Dot (point: TPoint): TFloat; inline;
+			function Negate: TPoint; inline;
+			function PerpendicularRight: TPoint; inline;
+			function PerpendicularLeft: TPoint; inline;
+			function Angle: TFloat;
+
+			{ Utilities }
+			function Min: TFloat; inline;			// x < y
+			function Max: TFloat; inline;			// x > y
+			function Sum: TFloat; inline;
+			function Compare (_x, _y: TFloat): boolean;
 		
-		{ Utilities }
-		function Min: TFloat; inline;			// x < y
-		function Max: TFloat; inline;			// x > y
-		function Sum: TFloat; inline;
-		function Compare (_x, _y: TFloat): boolean;
+			{ Directions }
+			function ManhattanDirection (tileCoord: TPoint): TPoint;
 		
-		{ Directions }
-		function ManhattanDirection (tileCoord: TPoint): TPoint;
-		
-		function EuclideanDistance (toPoint: TPoint): TFloat;
-		function DiagonalDistance (toPoint: TPoint): integer;
-		function ManhattanDistance (toPoint: TPoint): integer;
+			function EuclideanDistance (toPoint: TPoint): TFloat;
+			function DiagonalDistance (toPoint: TPoint): integer;
+			function ManhattanDistance (toPoint: TPoint): integer;
 	end;
 
 	TPoint3D = record
-		x: TFloat;
-		y: TFloat;
-		z: TFloat;
+		public
+			x: TFloat;
+			y: TFloat;
+			z: TFloat;
+		public
+			{ Constructors }
+			class function Make (_x, _y, _z: TFloat): TPoint3D; static; inline;
+			class function Invalid: TPoint3D; static; inline;
+			class function Zero: TPoint3D; static; inline;
 		
-		{ Constructors }
-		class function Make (_x, _y, _z: TFloat): TPoint3D; static; inline;
-		class function Invalid: TPoint3D; static; inline;
-		class function Zero: TPoint3D; static; inline;
+			{ Methods }
+			procedure Show;
+			function Str (places: integer = 0): string;
+			function IsZero: boolean;
+			function IsValid: boolean;
+			function IsEqual (point: TPoint3D): boolean;
+			function IsEqualXY (point: TPoint3D): boolean;
+			function IsIntegral: boolean;
+			function Offset (byX, byY: TFloat): TPoint3D; overload;
+			function Offset (byX, byY, byZ: TFloat): TPoint3D; overload;
+			function Offset (point: TPoint3D): TPoint3D; overload;
+			function Integral: TPoint3D;
+			function Floor: TPoint3D;
+			function Trunc: TPoint3D;
+			function Ceil: TPoint3D;
+			function Round: TPoint3D;
+			function Abs: TPoint3D;
+			function Clamp (lowest, highest: TPoint3D): TPoint3D; overload;
+			function Clamp (lowest, highest: TFloat): TPoint3D; overload;
+			function Sum: TFloat;
+			procedure SetPoint (_x, _y, _z: TFloat);
 		
-		{ Methods }
-		procedure Show;
-		function Str: string;
-		function IsZero: boolean;
-		function IsValid: boolean;
-		function IsEqual (point: TPoint3D): boolean;
-		function IsEqualXY (point: TPoint3D): boolean;
-		function IsIntegral: boolean;
-		function Offset (byX, byY, byZ: TFloat): TPoint3D; overload;
-		function Offset (point: TPoint3D): TPoint3D; overload;
-		function Integral: TPoint3D;
-		function Floor: TPoint3D;
-		function Trunc: TPoint3D;
-		function Ceil: TPoint3D;
-		function Round: TPoint3D;
-		function Abs: TPoint3D;
-		function Clamp (lowest, highest: TPoint3D): TPoint3D; overload;
-		function Clamp (lowest, highest: TFloat): TPoint3D; overload;
-		function Sum: TFloat;
-		procedure SetPoint (_x, _y, _z: TFloat);
+			{ Math }
+			function Add (amount: TFloat): TPoint3D; overload;
+			function Add (amount: TPoint3D): TPoint3D; overload;
+			function Subtract (amount: TFloat): TPoint3D; overload;
+			function Subtract (amount: TPoint3D): TPoint3D; overload;
+			function Divide (amount: TFloat): TPoint3D;
+			function Multiply (amount: TFloat): TPoint3D; overload;
+			function Multiply (amount: TPoint3D): TPoint3D; overload;
 		
-		{ Math }
-		function Add (amount: TFloat): TPoint3D; overload;
-		function Add (amount: TPoint3D): TPoint3D; overload;
-		function Subtract (amount: TFloat): TPoint3D; overload;
-		function Subtract (amount: TPoint3D): TPoint3D; overload;
-		function Divide (amount: TFloat): TPoint3D;
-		function Multiply (amount: TFloat): TPoint3D; overload;
-		function Multiply (amount: TPoint3D): TPoint3D; overload;
+			function Point2D: TPoint;
 		
-		function Point2D: TPoint; inline;
-		function XY: TPoint; inline;
+			{ Operators }
+			class operator + (p1: TPoint3D; p2: TPointPtr): TPoint3D; overload; inline;
+			class operator - (p1: TPoint3D; p2: TPointPtr): TPoint3D; overload; inline; 
+			
+			class operator + (p1, p2: TPoint3D): TPoint3D; overload; inline;
+			class operator - (p1, p2: TPoint3D): TPoint3D; overload; inline; 
+			class operator * (p1, p2: TPoint3D): TPoint3D; overload; inline; 
+			class operator / (p1, p2: TPoint3D): TPoint3D; overload; inline;
+			class operator = (p1, p2: TPoint3D): boolean; inline;
 		
-		{ Operators }
-		class operator + (p1: TPoint3D; p2: TPointPtr): TPoint3D; overload;
-		class operator - (p1: TPoint3D; p2: TPointPtr): TPoint3D; overload; 
+			class operator + (p1: TPoint3D; p2: TFloat): TPoint3D; overload; inline;
+			class operator - (p1: TPoint3D; p2: TFloat): TPoint3D; overload; inline;
+			class operator * (p1: TPoint3D; p2: TFloat): TPoint3D; overload; inline;
+			class operator / (p1: TPoint3D; p2: TFloat): TPoint3D; overload; inline;
 		
-		class operator + (p1, p2: TPoint3D): TPoint3D; overload;
-		class operator - (p1, p2: TPoint3D): TPoint3D; overload; 
-		class operator * (p1, p2: TPoint3D): TPoint3D; overload; 
-		class operator / (p1, p2: TPoint3D): TPoint3D;  overload;
-		class operator = (p1, p2: TPoint3D): boolean; 
+			class operator + (p1: TPoint3D; p2: TPoint): TPoint3D; overload; inline;
+			class operator - (p1: TPoint3D; p2: TPoint): TPoint3D; overload; inline;
+			class operator * (p1: TPoint3D; p2: TPoint): TPoint3D; overload; inline;
+			class operator / (p1: TPoint3D; p2: TPoint): TPoint3D; overload; inline;
 		
-		class operator + (p1: TPoint3D; p2: TFloat): TPoint3D; overload; 
-		class operator - (p1: TPoint3D; p2: TFloat): TPoint3D; overload; 
-		class operator * (p1: TPoint3D; p2: TFloat): TPoint3D; overload; 
-		class operator / (p1: TPoint3D; p2: TFloat): TPoint3D; overload;
+			{ Vector Helpers }
+			function Magnitude: TFloat;
+			function Distance (point: TPoint3D): TFloat;
+			function Normalize: TPoint3D; inline;
+			function Dot (point: TPoint3D): TFloat; inline;
+			function Cross (point: TPoint3D): TPoint3D;
+			function Negate: TPoint3D; inline;
+			function PerpendicularRight: TPoint3D; inline;
+			function PerpendicularLeft: TPoint3D; inline;
+			function AngleTo (constref b:TPoint3D): TFloat; inline;
+			function Angle (constref b,c:TPoint3D):TFloat; inline;
+			function SquaredLength: TFloat; inline;
+
+			{ Helpers }
+			function Compare (_x, _y, _z: TFloat): boolean;
 		
-		{ Vector Helpers }
-		function Magnitude: TFloat;
-		function Distance (point: TPoint3D): TFloat;
-		function Normalize: TPoint3D; inline;
-		function Dot (point: TPoint3D): TFloat; inline;
-		function Negate: TPoint3D; inline;
-		function PerpendicularRight: TPoint3D; inline;
-		function PerpendicularLeft: TPoint3D; inline;
+			{ Distance }
+			function EuclideanDirection (tileCoord: TPoint3D): TPoint3D;
+			function ManhattanDirection (tileCoord: TPoint3D): TPoint3D;
 		
-		{ Helpers }
-		function Compare (_x, _y, _z: TFloat): boolean;
-		
-		{ Distance }
-		function EuclideanDirection (tileCoord: TPoint3D): TPoint3D;
-		function ManhattanDirection (tileCoord: TPoint3D): TPoint3D;
-		
-		function EuclideanDistance (toPoint: TPoint3D): TFloat;
-		function ManhattanDistance (toPoint: TPoint3D): integer;
+			function EuclideanDistance (toPoint: TPoint3D): TFloat;
+			function ManhattanDistance (toPoint: TPoint3D): integer;
+
+			property XY: TPoint read Point2D;
 	end;
 	TPoint3DPtr = ^TPoint3D;
-							
+								
 type
 	TSize = record
-		width: TFloat;
-		height: TFloat;
+		public
+			width: TFloat;
+			height: TFloat;
+		public
+			{ Methods }
+			class function Make (w, h: TFloat): TSize; static; inline;
+			class function Make (size: TFloat): TSize; static; inline;
 		
-		{ Methods }
-		class function Make (w, h: TFloat): TSize; static; inline;
+			procedure Show;
+			function Str (places: integer = 0): string;
+			function IsEqual (size: TSize): boolean; inline;
+			function IsZero: boolean; inline;
+			function IsInfinte: boolean; inline;
+			function Floor: TSize;
+			function Ceil: TSize;
+			function Min: TFloat;
+			function Max: TFloat;
+			function Sum: TFloat;
+			function Area: TFloat;
+			function Vector: TPoint;
 		
-		procedure Show;
-		function Str: string;
-		function IsEqual (size: TSize): boolean;
-		function IsZero: boolean;
-		function Floor: TSize;
-		function Ceil: TSize;
-		function Min: TFloat;
-		function Max: TFloat;
-		function Sum: TFloat;
-		function Area: TFloat;
-		function Vector: TPoint;
+			{ Math }
+			function Add (amount: TFloat): TSize; overload;
+			function Add (amount: TSize): TSize; overload;
+			function Divide (amount: TFloat): TSize; overload;
+			function Divide (amount: TSize): TSize; overload;
+			function Multiply (amount: TSize): TSize; overload;
+			function Multiply (amount: TFloat): TSize; overload;
 		
-		{ Math }
-		function Add (amount: TFloat): TSize; overload;
-		function Add (amount: TSize): TSize; overload;
-		function Divide (amount: TFloat): TSize; overload;
-		function Divide (amount: TSize): TSize; overload;
-		function Multiply (amount: TSize): TSize; overload;
-		function Multiply (amount: TFloat): TSize; overload;
+			{ Operators }
+			class operator + (s1, s2: TSize): TSize; overload;
+			class operator - (s1, s2: TSize): TSize; overload; 
+			class operator * (s1, s2: TSize): TSize; overload; 
+			class operator / (s1, s2: TSize): TSize;  overload;
 		
-		{ Operators }
-		class operator + (s1, s2: TSize): TSize; overload;
-		class operator - (s1, s2: TSize): TSize; overload; 
-		class operator * (s1, s2: TSize): TSize; overload; 
-		class operator / (s1, s2: TSize): TSize;  overload;
+			class operator + (s1: TSize; s2: TFloat): TSize; overload; 
+			class operator - (s1: TSize; s2: TFloat): TSize; overload; 
+			class operator * (s1: TSize; s2: TFloat): TSize; overload; 
+			class operator / (s1: TSize; s2: TFloat): TSize; overload;
 		
-		class operator + (s1: TSize; s2: TFloat): TSize; overload; 
-		class operator - (s1: TSize; s2: TFloat): TSize; overload; 
-		class operator * (s1: TSize; s2: TFloat): TSize; overload; 
-		class operator / (s1: TSize; s2: TFloat): TSize; overload;
-		
-		class operator = (s1, s2: TSize): boolean; 
+			class operator = (s1, s2: TSize): boolean; 
+			
+			{ Properties }
+			property w: TFloat read width;
+			property h: TFloat read height;
 	end;
 	TSizePtr = ^TSize;
 	
@@ -244,180 +266,200 @@ type
 			function ContainsPoint (point: TPoint): boolean;
 			procedure Offset (x, y: TFloat); overload;
 			procedure Offset (amount: TPoint); overload;
+			function GetVertex (index: integer): TPoint;			
 			function High: integer;
 			function Count: integer;
 			function Str: AnsiString;
 			procedure Show;
+		public
+			property Verticies[const index:integer]:TPoint read GetVertex; default;
 	end;	
 	
 type
 	TRect = record
-		origin: TPoint;
-		size: TSize;
+		public
+			origin: TPoint;
+			size: TSize;
+		public
+			{ Constructors }
+			class function Make (x, y, width, height: TFloat): TRect; static; inline;
+			class function Make (point: TPoint): TRect; static; inline;
+			class function Empty: TRect; static; inline;
+			class function Infinite: TRect; static; inline;
+			
+			{ Methods }
+			procedure Show;
+			function Str (places: integer = 0): string;
 		
-		{ Constructors }
-		class function Make (x, y, width, height: TFloat): TRect; static; inline;
-		class function Make (point: TPoint): TRect; static; inline;
-		class function Empty: TRect; static; inline;
-		
-		{ Methods }
-		procedure Show;
-		function Str: string;
-		
-		{ Helpers }
-	  function Offset (x, y: TFloat): TRect; overload; inline;
-		function Offset (point: TPoint): TRect; overload; inline;
+			{ Helpers }
+		  function Offset (x, y: TFloat): TRect; overload; inline;
+			function Offset (point: TPoint): TRect; overload; inline;
 	
-	  function Inset (x, y: TFloat): TRect; inline;
-	  function Resize (width, height: TFloat): TRect; overload; inline;
-	  function Resize (s: TSize): TRect; overload; inline;
-	  function Resize (s: TFloat): TRect; overload; inline;
-		function Union (rect: TRect): TRect; inline;
+		  function Inset (x, y: TFloat): TRect; overload; inline;
+		  function Inset (amount: TFloat): TRect; overload; inline;
+		  function Resize (width, height: TFloat): TRect; overload; inline;
+		  function Resize (s: TSize): TRect; overload; inline;
+		  function Resize (s: TFloat): TRect; overload; inline;
+			function Union (rect: TRect): TRect; inline;
+			function Clamp (point: TPoint): TPoint;
+			
+		  function Integral: TRect; inline;
+			function Floor: TRect; inline;
+			function Ceil: TRect; inline;
 		
-	  function Integral: TRect; inline;
-		function Floor: TRect; inline;
-		function Ceil: TRect; inline;
+			function SetOrigin (x, y: TFloat): TRect;
+			function SetSize (width, height: TFloat): TRect;
+			function IsEmpty: boolean;
+			function Polygon: TPolygon;
 		
-		function SetOrigin (x, y: TFloat): TRect;
-		function SetSize (width, height: TFloat): TRect;
-		function IsEmpty: boolean;
-		function Polygon: TPolygon;
+			function ContainsPoint (point: TPoint): boolean;
+			function ContainsRect (rect: TRect): boolean;
+			function IntersectsRect (rect: TRect): boolean;
 		
-		function ContainsPoint (point: TPoint): boolean;
-		function ContainsRect (rect: TRect): boolean;
-		function IntersectsRect (rect: TRect): boolean;
-		
-		{ Operators }
-		class operator + (r1, r2: TRect): TRect; overload;
-		class operator - (r1, r2: TRect): TRect; overload; 
-		class operator * (r1, r2: TRect): TRect; overload; 
-		class operator / (r1, r2: TRect): TRect;  overload;
+			{ Operators }
+			class operator + (r1, r2: TRect): TRect; overload;
+			class operator - (r1, r2: TRect): TRect; overload; 
+			class operator * (r1, r2: TRect): TRect; overload; 
+			class operator / (r1, r2: TRect): TRect;  overload;
 		                  
-		class operator + (r1: TRect; r2: TFloat): TRect; overload; 
-		class operator - (r1: TRect; r2: TFloat): TRect; overload; 
-		class operator * (r1: TRect; r2: TFloat): TRect; overload; 
-		class operator / (r1: TRect; r2: TFloat): TRect; overload;
+			class operator + (r1: TRect; r2: TFloat): TRect; overload; 
+			class operator - (r1: TRect; r2: TFloat): TRect; overload; 
+			class operator * (r1: TRect; r2: TFloat): TRect; overload; 
+			class operator / (r1: TRect; r2: TFloat): TRect; overload;
 		
-		class operator = (r1, r2: TRect): boolean; 
+			class operator = (r1, r2: TRect): boolean; 
 		
-		{ Math }
-		function Divide (amount: TFloat): TRect; inline;
-		function Multiply (amount: TFloat): TRect; inline;
+			{ Math }
+			function Divide (amount: TFloat): TRect; inline;
+			function Multiply (amount: TFloat): TRect; inline;
 		
-		{ Absolute Coords }
-		function Min: TPoint; inline;
-		function Max: TPoint; inline;
+			{ Absolute Coords }
+			function Min: TPoint; inline;
+			function Max: TPoint; inline;
+			function Mid: TPoint; inline;
+
+			function GetTopLeft: TPoint; inline;
+			function GetTopRight: TPoint; inline;
+			function GetBottomLeft: TPoint; inline;
+			function GetBottomRight: TPoint; inline;
+			function GetCenter: TPoint; inline;
 		
-		function GetTopLeft: TPoint; inline;
-		function GetTopRight: TPoint; inline;
-		function GetBottomLeft: TPoint; inline;
-		function GetBottomRight: TPoint; inline;
-		function GetCenter: TPoint; inline;
+			{ Relative Coords }
+			function GetMinX: TFloat; inline;
+			function GetMidX: TFloat; inline;
+			function GetMaxX: TFloat; inline;
+			function GetMinY: TFloat; inline;
+			function GetMidY: TFloat; inline;
+			function GetMaxY: TFloat; inline;
 		
-		{ Relative Coords }
-		function GetMinX: TFloat; inline;
-		function GetMidX: TFloat; inline;
-		function GetMaxX: TFloat; inline;
-		function GetMinY: TFloat; inline;
-		function GetMidY: TFloat; inline;
-		function GetMaxY: TFloat; inline;
-		
-		function GetWidth: TFloat; inline;
-		function GetHeight: TFloat; inline;
+			function GetWidth: TFloat; inline;
+			function GetHeight: TFloat; inline;
+			
+			{ Properties }
+			property x: TFloat read origin.x write origin.x;
+			property y: TFloat read origin.y write origin.y;
+			property w: TFloat read size.width write size.width;
+			property h: TFloat read size.height write size.height;
 	end;
 	TRectPtr = ^TRect;
 	
 type
 	TSize3D = record
-		width: TFloat;		// x
-		height: TFloat;		// y
-		depth: TFloat;		// z
+		public
+			width: TFloat;		// x
+			height: TFloat;		// y
+			depth: TFloat;		// z
+		public
+			{ Constructor }
+			class function Make (_width, _height, _depth: TFloat): TSize3D; overload; static; inline;
+			class function Make (size: TSize): TSize3D; overload; static; inline;
+			class function Make (_volume: TFloat): TSize3D; overload; static; inline;
 		
-		{ Constructor }
-		class function Make (_width, _height, _depth: TFloat): TSize3D; overload; static; inline;
-		class function Make (size: TSize): TSize3D; overload; static; inline;
+			{ Methods }
+			procedure Show;
+			function Str (places: integer = 0): string;
+			function IsEqual (size: TSize3D): boolean; inline;
+			function IsZero: boolean; inline;
+			function Floor: TSize3D;
+			function Ceil: TSize3D;
+			function Size2D: TSize;
+			function WH: TSize;
+			function Sum: TFloat;
+			function Volume: TFloat;
+			function SetDepth (newValue: TFloat): TSize3D;
+			function Vector: TPoint3D;
 		
-		{ Methods }
-		procedure Show;
-		function Str: string;
-		function IsEqual (size: TSize3D): boolean;
-		function IsZero: boolean;
-		function Floor: TSize3D;
-		function Ceil: TSize3D;
-		function Size2D: TSize;
-		function Sum: TFloat;
-		function Volume: TFloat;
-		function SetDepth (newValue: TFloat): TSize3D;
-		function Vector: TPoint3D;
+			{ Math }
+			function Add (amount: TFloat): TSize3D; overload;
+			function Add (amount: TSize3D): TSize3D; overload;
+			function Divide (amount: TFloat): TSize3D; overload;
+			function Divide (amount: TSize3D): TSize3D; overload;
+			function Multiply (amount: TSize3D): TSize3D; overload;
+			function Multiply (amount: TFloat): TSize3D; overload;
 		
-		{ Math }
-		function Add (amount: TFloat): TSize3D; overload;
-		function Add (amount: TSize3D): TSize3D; overload;
-		function Divide (amount: TFloat): TSize3D; overload;
-		function Divide (amount: TSize3D): TSize3D; overload;
-		function Multiply (amount: TSize3D): TSize3D; overload;
-		function Multiply (amount: TFloat): TSize3D; overload;
+			{ Operators }
+			class operator + (s1, s2: TSize3D): TSize3D; overload;
+			class operator - (s1, s2: TSize3D): TSize3D; overload; 
+			class operator * (s1, s2: TSize3D): TSize3D; overload; 
+			class operator / (s1, s2: TSize3D): TSize3D;  overload;
 		
-		{ Operators }
-		class operator + (s1, s2: TSize3D): TSize3D; overload;
-		class operator - (s1, s2: TSize3D): TSize3D; overload; 
-		class operator * (s1, s2: TSize3D): TSize3D; overload; 
-		class operator / (s1, s2: TSize3D): TSize3D;  overload;
+			class operator + (s1: TSize3D; s2: TFloat): TSize3D; overload; 
+			class operator - (s1: TSize3D; s2: TFloat): TSize3D; overload; 
+			class operator * (s1: TSize3D; s2: TFloat): TSize3D; overload; 
+			class operator / (s1: TSize3D; s2: TFloat): TSize3D; overload;
 		
-		class operator + (s1: TSize3D; s2: TFloat): TSize3D; overload; 
-		class operator - (s1: TSize3D; s2: TFloat): TSize3D; overload; 
-		class operator * (s1: TSize3D; s2: TFloat): TSize3D; overload; 
-		class operator / (s1: TSize3D; s2: TFloat): TSize3D; overload;
-		
-		class operator = (s1, s2: TSize3D): boolean; 
+			class operator = (s1, s2: TSize3D): boolean; 
 	end;	
 	
 type
 	TRect3D = record
-		origin: TPoint3D;
-		size: TSize3D;
-		
-		{ Constructor }
-		class function Make (x, y, z, width, height, depth: TFloat): TRect3D; overload; static;
-		class function Make (rect: TRect): TRect3D; overload; static;
-		class function Empty: TRect3D; static; inline;
+		public
+			origin: TPoint3D;
+			size: TSize3D;
+		public
+			{ Constructor }
+			class function Make (x, y, z, width, height, depth: TFloat): TRect3D; overload; static;
+			class function Make (rect: TRect): TRect3D; overload; static;
+			class function Make (rect: TRect; originZ, sizeDepth: TFloat): TRect3D; overload; static;
+			class function Empty: TRect3D; static; inline;
 				
-		{ Accessors }
-		function Min: TPoint3D; inline;
-		function Mid: TPoint3D; inline;
-		function Max: TPoint3D; inline;
+			{ Accessors }
+			function Min: TPoint3D; inline;
+			function Mid: TPoint3D; inline;
+			function Max: TPoint3D; inline;
 		
-		function MinX: TFloat; inline;
-		function MidX: TFloat; inline;
-		function MaxX: TFloat; inline;
+			function MinX: TFloat; inline;
+			function MidX: TFloat; inline;
+			function MaxX: TFloat; inline;
 		
-		function MinY: TFloat; inline;
-		function MidY: TFloat; inline;
-		function MaxY: TFloat; inline;
+			function MinY: TFloat; inline;
+			function MidY: TFloat; inline;
+			function MaxY: TFloat; inline;
 		
-		function MinZ: TFloat; inline;
-		function MidZ: TFloat; inline;
-		function MaxZ: TFloat; inline;
+			function MinZ: TFloat; inline;
+			function MidZ: TFloat; inline;
+			function MaxZ: TFloat; inline;
 		
-		function Width: TFloat; inline;
-		function Height: TFloat; inline;
-		function Depth: TFloat; inline;
+			function Width: TFloat; inline;
+			function Height: TFloat; inline;
+			function Depth: TFloat; inline;
 		
-		function Center: TPoint3D; inline;
+			function Center: TPoint3D; inline;
 				
-		{ Methods }
-		procedure Show;
-		function Str: string;	
-		function Rect2D: TRect;	
-		function IsEmpty: boolean;
+			{ Methods }
+			procedure Show;
+			function Str (places: integer = 0): string;	
+			function Rect2D: TRect;	
+			function IsEmpty: boolean;
 		
-		function Union (rect: TRect3D): TRect3D;
-		function Inset (x, y, z: TFloat): TRect3D;
+			function Union (rect: TRect3D): TRect3D;
+			function Inset (x, y, z: TFloat): TRect3D;
 		
-		function IntersectsRect (rect: TRect3D): boolean;
-		function ContainsPoint (point: TPoint3D): boolean;
+			function IntersectsRect (rect: TRect3D): boolean;
+			function ContainsPoint (point: TPoint3D): boolean;
 	end;
-		
+
+// TODO: aabb's can be replaced by TRect by adding constructors and min/max properties		
 type
 	TAABB2 = record
 		public
@@ -441,6 +483,7 @@ type
 			function Rect: TRect;
 			function Intersects (_rect: TRect): boolean; overload;
 			function Intersects (_square: TAABB2): boolean; overload;
+			procedure Offset (amount: TPoint);
 			
 			function Str: string;
 			procedure Show;
@@ -448,97 +491,131 @@ type
 	
 type
 	TAABB3 = record
-		min: TPoint3D;
-		max: TPoint3D;
+		public
+			min: TPoint3D;
+			max: TPoint3D;
 		
-		{ Constructors }
-		class function Make (_minX, _maxX: TFloat; _minY, _maxY: TFloat; _minZ, _maxZ: TFloat): TAABB3; overload; static; inline;
-		class function Make (_min, _max: TPoint3D): TAABB3; overload; static; inline;
+		public
+			{ Constructors }
+			class function Make (_minX, _maxX: TFloat; _minY, _maxY: TFloat; _minZ, _maxZ: TFloat): TAABB3; overload; static; inline;
+			class function Make (_min, _max: TPoint3D): TAABB3; overload; static; inline;
+			class function Make (rect: TRect3D): TAABB3; overload; static; inline;
 
-		{ Points }
-		function MinX: TFloat; inline;
-		function MinY: TFloat; inline;
-		function MinZ: TFloat; inline;
+			{ Points }
+			function MinX: TFloat; inline;
+			function MinY: TFloat; inline;
+			function MinZ: TFloat; inline;
 		
-		function MaxX: TFloat; inline;
-		function MaxY: TFloat; inline;
-		function MaxZ: TFloat; inline;
+			function MaxX: TFloat; inline;
+			function MaxY: TFloat; inline;
+			function MaxZ: TFloat; inline;
 
-		function MidX: TFloat; inline;
-		function MidY: TFloat; inline;
-		function MidZ: TFloat; inline;
+			function MidX: TFloat; inline;
+			function MidY: TFloat; inline;
+			function MidZ: TFloat; inline;
 
-		function Width: TFloat; inline;
-		function Height: TFloat; inline;
-		function Depth: TFloat; inline;
+			function Width: TFloat; inline;
+			function Height: TFloat; inline;
+			function Depth: TFloat; inline;
 
-		{ Methods }
-		function Str: string;
-		procedure Show;
-		function Rect: TRect3D;
-		function Intersects (aabb: TAABB3): boolean;
+			{ Methods }
+			function Str: string;
+			procedure Show;
+			function Rect: TRect3D;
+			function Intersects (aabb: TAABB3): boolean;
 	end;	
 
 type
+	TBezierCurvePoints = record
+		public
+			p0, p1, p2, p3: TPoint;
+			constructor Create (_p0, _p1, _p2, _p3: TPoint);
+	end;
+
+type
 	TBezierCurve = record
-		points: array of TPoint;
-		startPoint: TPoint;
-		endPoint: TPoint;
-		
-		constructor Make (p0, p1, p2, p3: TPoint; _steps: integer);
-		
-		function Steps: integer;
-		function Sum: TPoint;
-		function Average: TPoint;
-		function Count: integer;
-		procedure Show;
+		public
+			points: array of TPoint;
+			startPoint: TPoint;
+			endPoint: TPoint;
+		public
+			constructor Make (p0, p1, p2, p3: TPoint; _steps: integer);
+			class function PointAt (p0, p1, p2, p3: TPoint; step, totalSteps: integer): TPoint; static; overload;
+			class function PointAt (pts: TBezierCurvePoints; step, totalSteps: integer): TPoint; static; overload;
+
+			function Steps: integer;
+			function Sum: TPoint;
+			function Average: TPoint;
+			function Count: integer;
+			procedure Show;
 	end;
 
 type
 	TCircle = record
-		origin: TPoint;
-		radius: TFloat;
+		public
+			origin: TPoint;
+			radius: TFloat;
+		public
+			class function Make (_origin: TPoint; _radius: TFloat): TCircle; static; inline;
+			class function Make (x, y: TFloat; _radius: TFloat): TCircle; static; inline;
+			class function Make (rect: TRect): TCircle; static; inline;
+			class function RadiusForBoundingRect (rect: TRect): TFloat; static; inline;
+
+			procedure SetOrigin (newValue: TPoint); 
 		
-		class function Make (_origin: TPoint; _radius: TFloat): TCircle; static; inline;
-		class function Make (x, y: TFloat; _radius: TFloat): TCircle; static; inline;
-		class function Make (rect: TRect): TCircle; static; inline;
-		
-		procedure SetOrigin (newValue: TPoint); 
-		
-		function Intersects (const circle: TCircle): boolean; overload;
-		function Intersects (const circle: TCircle; out hitPoint: TPoint): boolean; overload; 
-		function Intersects (const rect: TRect): boolean; overload;
-		function Distance (const circle: TCircle): TFloat; 
-		
-		procedure Show;
+			function Intersects (const circle: TCircle): boolean; overload;
+			function Intersects (const circle: TCircle; out hitPoint: TPoint): boolean; overload; 
+			function Intersects (const rect: TRect): boolean; overload;
+			function Distance (const circle: TCircle; fromDiameter: boolean = true): TFloat; inline;
+			
+			function Str: string;
+			procedure Show;
 	end;
 	TCirclePtr = ^TCircle;
 		
 type
 	TLine = record
-		a: TPoint;
-		b: TPoint;
+		public
+			a: TPoint;
+			b: TPoint;
+		public
+			class function Make (_a, _b: TPoint): TLine; static; inline;
+			class function Zero: TLine; static; inline;
+			
+			function Intersects (rect: TRect): boolean;
+			
+			class operator + (line: TLine; amount: TFloat): TLine;
+			class operator - (line: TLine; amount: TFloat): TLine;
+			class operator * (line: TLine; amount: TFloat): TLine;
+			class operator / (line: TLine; amount: TFloat): TLine;
+			class operator = (line1: TLine; line2: TLine): boolean; 
 		
-		class function Make (_a, _b: TPoint): TLine; static; inline;
-		function Intersects (rect: TRect): boolean;
-		
-		class operator + (line: TLine; amount: TFloat): TLine;
-		class operator - (line: TLine; amount: TFloat): TLine;
-		class operator * (line: TLine; amount: TFloat): TLine;
-		class operator / (line: TLine; amount: TFloat): TLine;
-		class operator = (line1: TLine; line2: TLine): boolean; 
-		
-		function Str: string;
-		procedure Show;
+			function Str: string;
+			procedure Show;
 	end;
 	TLinePtr = ^TLine;		
-		
-// For NSOrdered translations
-const	
-  kOrderedAscending = -1;
-  kOrderedSame = 0;
-  kOrderedDescending = 1;		
 
+type
+	TLine3D = record
+		public
+			a: TPoint3D;
+			b: TPoint3D;
+		public
+			class function Make (_a, _b: TPoint3D): TLine3D; static; inline;
+			function Intersects (rect: TRect3D): boolean;
+		
+			class operator + (line: TLine3D; amount: TFloat): TLine3D;
+			class operator - (line: TLine3D; amount: TFloat): TLine3D;
+			class operator * (line: TLine3D; amount: TFloat): TLine3D;
+			class operator / (line: TLine3D; amount: TFloat): TLine3D;
+			class operator = (line1: TLine3D; line2: TLine3D): boolean; 
+		
+			function	Line2D: TLine; inline;
+			function Str: string;
+			procedure Show;
+	end;
+	TLine3DPtr = ^TLine3D;		
+	
 { Making }
 function PointMake (s: TFloat): TPoint; overload; inline;
 function PointMake (x, y: TFloat): TPoint; overload; inline;
@@ -623,9 +700,14 @@ function Point3DInvalid: TPoint3D;
 function PointMax: TPoint;
 function PointMin: TPoint;
 
+function PointOnSide (p, a, b: TPoint): integer; inline;
+function LineIntersectsRect (p1, p2: TPoint; rect: TRect): boolean;
+function PolyEdge (poly: TPolygon; edge: integer): TLine; 
+
 type
 	TPointHelper = record helper for TPoint
 		function Rect: TRect;
+		function XYZ (z: TFloat = 0): TPoint3D;
 	end;
 	
 // TODO: UMath
@@ -638,11 +720,31 @@ function Lowest (v1, v2: LongInt): LongInt; overload;
 function Within (v, l, h: double): boolean; overload;
 function Within (v, l, h: integer): boolean; overload;
 
+function Round2(const Number: TFloat; const Places: longint): TFloat;
+
 implementation
+
+function PolyEdge (poly: TPolygon; edge: integer): TLine; 
+begin
+	if edge < poly.high then
+		result := TLine.Make(poly[edge], poly[edge + 1])
+	else
+		result := TLine.Make(poly[edge], poly[0]);
+end;
 
 {=============================================}
 {@! ___MATH___ } 
 {=============================================}
+function Round2(const Number: TFloat; const Places: longint): TFloat;
+var
+	t: TFloat;
+begin
+	if places = 0 then
+		exit(number);
+	t := power(10, places);
+	round2 := round(Number*t)/t;
+end;
+
 function Within (v, l, h: double): boolean;
 begin
 	result := (v >= l) and (v <= h);
@@ -688,6 +790,14 @@ end;
 {=============================================}
 {@! ___LINE___ } 
 {=============================================}
+
+//https://stackoverflow.com/questions/1560492/how-to-tell-whether-a-point-is-to-the-right-or-left-side-of-a-line
+//It is 0 on the line, and +1 on one side, -1 on the other side.
+function PointOnSide (p, a, b: TPoint): integer;
+begin
+	result := Sign(((b.x - a.x) * (p.y - a.y)) - ((b.y - a.y) * (p.x - a.x)));
+end;
+
 // http://stackoverflow.com/questions/99353/how-to-test-if-a-line-segment-intersects-an-axis-aligned-rectange-in-2d
 function LineIntersectsRect (p1, p2: TPoint; rect: TRect): boolean;
 var
@@ -719,7 +829,7 @@ begin
   minY := p1.y;
   maxY := p2.y;
 	dx := p2.x - p1.x;
-
+	
 	if Abs(dx) > 0.0000001 then
 		begin
 			a := (p2.y - p1.y) / dx;
@@ -746,6 +856,65 @@ begin
   	exit(false);
 
   result := true;
+end;
+
+//https://stackoverflow.com/questions/1073336/circle-line-segment-collision-detection-algorithm
+function LineIntersectsCircle (line: TLine; circle: TCircle): boolean; 
+var
+	d, f: TPoint;
+	a, b, c: TFloat;
+	discriminant: TFloat;
+	t1, t2: TFloat;
+begin
+	d := line.b - line.a; // Direction vector of ray, from start to end
+	f := line.a - circle.origin; // Vector from center sphere to ray start
+	a := d.Dot( d );
+	b := 2*f.Dot( d ) ;
+	c := f.Dot( f ) - circle.radius*circle.radius;
+	discriminant := b*b-4*a*c;
+	if( discriminant < 0 ) then
+		exit(false) // no intersection
+	else
+		begin
+			// ray didn't totally miss sphere,
+		  // so there is a solution to
+		  // the equation.
+		  discriminant := Sqrt(discriminant);
+
+		  // either solution may be on or off the ray so need to test both
+		  // t1 is always the smaller value, because BOTH discriminant and
+		  // a are nonnegative.
+		  t1 := (-b - discriminant)/(2*a);
+		  t2 := (-b + discriminant)/(2*a);
+
+		  // 3x HIT cases:
+		  //          -o->             --|-->  |            |  --|->
+		  // Impale(t1 hit,t2 hit), Poke(t1 hit,t2>1), ExitWound(t1<0, t2 hit), 
+
+		  // 3x MISS cases:
+		  //       ->  o                     o ->              | -> |
+		  // FallShort (t1>1,t2>1), Past (t1<0,t2<0), CompletelyInside(t1<0, t2>1)
+
+		  if (t1 >= 0) and (t1 <= 1) then
+				begin
+					// t1 is the intersection, and it's closer than t2
+			    // (since t1 uses -b - discriminant)
+			    // Impale, Poke
+			    exit(true);
+				end;
+
+		  // here t1 didn't intersect so we are either started
+		  // inside the sphere or completely past it
+		  if (t2 >= 0) and (t2 <= 1) then
+				begin
+					// ExitWound
+			    exit(true);
+				end;
+
+		  // no intn: FallShort, Past, CompletelyInside
+		  exit(false)
+		end;
+	
 end;
 
 procedure TLine.Show;
@@ -787,8 +956,124 @@ function TLine.Intersects (rect: TRect): boolean;
 begin
 	result := LineIntersectsRect(a, b, rect);
 end;
-	
+
 class function TLine.Make (_a, _b: TPoint): TLine;
+begin
+	result.a := _a;
+	result.b := _b;
+end;	
+
+class function TLine.Zero: TLine;
+begin
+	result.a := TPoint.Zero;
+	result.b := TPoint.Zero;
+end;
+
+{=============================================}
+{@! ___LINE3D___ } 
+{=============================================}
+
+// http://www.3dkingdoms.com/weekly/weekly.php?a=3
+function GetIntersection (fDst1, fDst2: TFloat; P1, P2: TPoint3D; out hit: TPoint3D): boolean; inline;
+begin
+	if ( (fDst1 * fDst2) >= 0.0) then exit(false);
+	if ( fDst1 = fDst2) then exit(false); 
+	Hit := P1 + (P2-P1) * ( -fDst1/(fDst2-fDst1) );
+	result := true;
+end;
+
+function InBox (Hit, B1, B2: TPoint3D; const axis: integer): boolean; inline;
+begin
+	if ( (Axis=1) and (Hit.z > B1.z) and (Hit.z < B2.z) and (Hit.y > B1.y) and (Hit.y < B2.y)) then exit(true);
+	if ( (Axis=2) and (Hit.z > B1.z) and (Hit.z < B2.z) and (Hit.x > B1.x) and (Hit.x < B2.x)) then exit(true);
+	if ( (Axis=3) and (Hit.x > B1.x) and (Hit.x < B2.x) and (Hit.y > B1.y) and (Hit.y < B2.y)) then exit(true);
+	result := false;
+end;
+
+// returns true if line (L1, L2) intersects with the box (B1, B2)
+// returns intersection point in Hit
+function CheckLineBox (B1, B2, L1, L2: TPoint3D; out hit: TPoint3D): boolean;
+begin
+	if ((L2.x < B1.x) and (L1.x < B1.x)) then exit(false);
+	if ((L2.x > B2.x) and (L1.x > B2.x)) then exit(false);
+	if ((L2.y < B1.y) and (L1.y < B1.y)) then exit(false);
+	if ((L2.y > B2.y) and (L1.y > B2.y)) then exit(false);
+	if ((L2.z < B1.z) and (L1.z < B1.z)) then exit(false);
+	if ((L2.z > B2.z) and (L1.z > B2.z)) then exit(false);
+	if ((L1.x > B1.x) and (L1.x < B2.x) and
+	    (L1.y > B1.y) and (L1.y < B2.y) and
+	    (L1.z > B1.z) and (L1.z < B2.z)) then
+			begin
+				Hit := L1; 
+		    exit(true);
+			end;
+	if ( (GetIntersection( L1.x-B1.x, L2.x-B1.x, L1, L2, Hit) and InBox( Hit, B1, B2, 1 ))
+	  or (GetIntersection( L1.y-B1.y, L2.y-B1.y, L1, L2, Hit) and InBox( Hit, B1, B2, 2 )) 
+	  or (GetIntersection( L1.z-B1.z, L2.z-B1.z, L1, L2, Hit) and InBox( Hit, B1, B2, 3 )) 
+	  or (GetIntersection( L1.x-B2.x, L2.x-B2.x, L1, L2, Hit) and InBox( Hit, B1, B2, 1 )) 
+	  or (GetIntersection( L1.y-B2.y, L2.y-B2.y, L1, L2, Hit) and InBox( Hit, B1, B2, 2 )) 
+	  or (GetIntersection( L1.z-B2.z, L2.z-B2.z, L1, L2, Hit) and InBox( Hit, B1, B2, 3 ))) then
+		exit(true);
+
+	result := false;
+end;
+
+function TLine3D.Intersects (rect: TRect3D): boolean;
+var
+	hit: TPoint3D;
+begin
+	//exit(LineIntersectsRect(a.XY, b.XY, rect.Rect2D));
+	result := CheckLineBox(rect.min, rect.max, self.a, self.b, hit);
+end;
+
+procedure TLine3D.Show;
+begin
+	writeln(Str);
+end;
+
+function TLine3D.Line2D: TLine;
+begin
+	result := TLine.Make(a.XY, b.XY);
+end;
+
+function TLine3D.Str: string;
+begin
+	result := a.Str+', '+b.Str;
+end;
+
+class operator TLine3D.= (line1: TLine3D; line2: TLine3D): boolean; 
+begin
+	result := (line1.a = line2.a) and (line1.b = line2.b);
+end;
+
+class operator TLine3D.+ (line: TLine3D; amount: TFloat): TLine3D;
+begin
+	result := TLine3D.Make(line.a + amount, line.b + amount);
+end;
+
+class operator TLine3D.- (line: TLine3D; amount: TFloat): TLine3D;
+begin
+	result := TLine3D.Make(line.a - amount, line.b - amount);
+end;
+
+class operator TLine3D.* (line: TLine3D; amount: TFloat): TLine3D;
+begin
+	result := TLine3D.Make(line.a * amount, line.b * amount);
+end;
+
+class operator TLine3D./ (line: TLine3D; amount: TFloat): TLine3D;
+begin
+	result := TLine3D.Make(line.a / amount, line.b / amount);
+end;
+
+{function TLine3D.Intersects (rect: TRect3D): boolean;
+begin
+	if ((a.z > rect.MaxZ) or (a.z < rect.MinZ)) and ((b.z > rect.MaxZ) or (b.z < rect.MinZ)) then
+		exit(false);
+	result := LineIntersectsRect(a.XY, b.XY, rect.Rect2D);
+end;}
+	
+class function TLine3D.Make (_a, _b: TPoint3D): TLine3D;
 begin
 	result.a := _a;
 	result.b := _b;
@@ -814,6 +1099,12 @@ class function TCircle.Make (rect: TRect): TCircle;
 begin
 	result.origin := rect.GetCenter;
 	result.radius := rect.Min.Distance(rect.Max) / 2;
+end;
+
+
+class function TCircle.RadiusForBoundingRect (rect: TRect): TFloat;
+begin
+	result := rect.Min.Distance(rect.Max) / 2;
 end;
 
 procedure TCircle.SetOrigin (newValue: TPoint); 
@@ -880,14 +1171,22 @@ begin
 end;
 
 // distance from diameter
-function TCircle.Distance (const circle: TCircle): TFloat; 
+function TCircle.Distance (const circle: TCircle; fromDiameter: boolean = true): TFloat; 
 begin	
-	result := origin.Distance(circle.origin) - (radius + circle.radius);
+	if fromDiameter then
+		result := origin.Distance(circle.origin) - (radius + circle.radius)
+	else
+		result := origin.Distance(circle.origin);
+end;
+
+function TCircle.Str: string;
+begin
+	result := origin.str+', r='+radius.Str;
 end;
 
 procedure TCircle.Show; 
 begin
-	writeln(origin.str, ', r=', radius.Str);
+	writeln(Str);
 end;
 
 {=============================================}
@@ -906,6 +1205,12 @@ end;
 function TAABB2.Rect: TRect;
 begin
 	result := RectMake(min.x, min.y, max.x - min.x, max.y - min.y);
+end;
+
+procedure TAABB2.Offset (amount: TPoint);
+begin
+	min += amount;
+	max += amount;
 end;
 
 function TAABB2.Intersects (_rect: TRect): boolean;
@@ -977,8 +1282,6 @@ end;
 {=============================================}
 function TAABB3.Str: string;
 begin
-	//result := 'minX='+minX.Str+' maxX='+maxX.Str+' minY='+minY.Str+' maxY='+maxY.Str+' minZ='+minZ.Str+' maxZ='+maxZ.Str;
-	//result := '{x='+minX.Str+' y='+minY.Str+' z='+minZ.Str+'},'+' {x='+maxX.Str+' y='+maxY.Str+' z='+maxZ.Str+'}';
 	result := min.str+', '+max.str;
 end;
 
@@ -1062,6 +1365,12 @@ begin
 	result := max.z;
 end;
 
+class function TAABB3.Make (rect: TRect3D): TAABB3;
+begin
+	result.min := rect.Min;
+	result.max := rect.Max;
+end;
+
 class function TAABB3.Make (_minX, _maxX: TFloat; _minY, _maxY: TFloat; _minZ, _maxZ: TFloat): TAABB3;
 begin
 	result.min := PointMake(_minX, _minY, _minZ);
@@ -1114,6 +1423,25 @@ end;
 
 // http://robnapier.net/blog/fast-bezier-intro-701
 // http://robnapier.net/faster-bezier
+class function TBezierCurve.PointAt (pts: TBezierCurvePoints; step, totalSteps: integer): TPoint;
+begin
+	result := PointAt(pts.p0, pts.p1, pts.p2, pts.p3, step, totalSteps);
+end;
+
+class function TBezierCurve.PointAt (p0, p1, p2, p3: TPoint; step, totalSteps: integer): TPoint;
+var
+	t: TFloat;
+	gC0, gC1, gC2, gC3: TFloat;
+begin
+	t := step/totalSteps;
+	gC0 := (1-t)*(1-t)*(1-t); // * P0
+  gC1 := 3 * (1-t)*(1-t) * t; // * P1
+  gC2 := 3 * (1-t) * t*t; // * P2
+  gC3 := t*t*t; // * P3;
+	result.x := gC0*P0.x + gC1*P1.x + gC2*P2.x + gC3*P3.x;
+	result.y := gC0*P0.y + gC1*P1.y + gC2*P2.y + gC3*P3.y;
+end;
+
 constructor TBezierCurve.Make (p0, p1, p2, p3: TPoint; _steps: integer);
 var
 	t: TFloat;
@@ -1147,12 +1475,25 @@ begin
 		end;
 end;
 		
+constructor TBezierCurvePoints.Create (_p0, _p1, _p2, _p3: TPoint);
+begin
+	p0 := _p0;
+	p1 := _p1;
+	p2 := _p2;
+	p3 := _p3;
+end;
+
 {=============================================}
 {@! ___POINT HELPER___ } 
 {=============================================}		
 function TPointHelper.Rect: TRect;
 begin
 	result := RectMake(x, y, 1, 1);
+end;
+
+function TPointHelper.XYZ (z: TFloat = 0): TPoint3D;
+begin
+	result := PointMake(self, z);
 end;
 		
 {=============================================}
@@ -1215,6 +1556,11 @@ begin
 	result := Count - 1;
 end;
 
+function TPolygon.GetVertex (index: integer): TPoint;
+begin
+	result := v[index];
+end;
+
 procedure TPolygon.Offset (amount: TPoint);
 begin
 	Offset(amount.x, amount.y);
@@ -1256,9 +1602,9 @@ begin
 	TShow(self);
 end;
 
-function TPoint.Str: string;
+function TPoint.Str (places: integer = 0): string;
 begin
-	result := TStr(self);
+	result := '{'+self.x.Str(places)+', '+self.y.Str(places)+'}';
 end;
 
 class function TPoint.Make (_x, _y: TFloat): TPoint;
@@ -1267,13 +1613,14 @@ begin
 	result.y := _y;
 end;
 
-class function TPoint.FromAngleInDegrees (degrees, radius: TFloat): TPoint;
-var
-	radians: double;
+class function TPoint.FromAngleInDegrees (degrees: TFloat): TPoint;
 begin
-	radians := DegToRad(degrees);
-	result.x := Cos(radians / radius);
-	result.y := Sin(radians / radius);
+	SinCos(DegToRad(degrees), result.y, result.x);
+end;
+
+class function TPoint.FromAngleInRadians (radians: TFloat): TPoint;
+begin
+	SinCos(radians, result.y, result.x);
 end;
 
 class function TPoint.Invalid: TPoint;
@@ -1511,6 +1858,11 @@ begin
 	result := PointMake(y, -x);
 end;
 
+function TPoint.Angle: TFloat;
+begin
+	result := Arctan2(y, x);
+end;
+
 function TPoint.Dot (point: TPoint): TFloat;
 begin
 	// (a1,a2)•(b1,b2) = a1b1 + a2b2
@@ -1625,6 +1977,25 @@ end;
 {=============================================}
 {@! ___POINT 3D___ } 
 {=============================================}
+class operator TPoint3D.+ (p1: TPoint3D; p2: TPoint): TPoint3D;
+begin
+	result := p1 + PointMake(p2, 0);
+end;
+
+class operator TPoint3D.- (p1: TPoint3D; p2: TPoint): TPoint3D;
+begin
+	result := p1 - PointMake(p2, 0);
+end;
+
+class operator TPoint3D.* (p1: TPoint3D; p2: TPoint): TPoint3D;
+begin
+	result := p1 * PointMake(p2, 0);
+end;
+
+class operator TPoint3D./ (p1: TPoint3D; p2: TPoint): TPoint3D;
+begin
+	result := p1 / PointMake(p2, 0);
+end;
 
 class operator TPoint3D.+ (p1: TPoint3D; p2: TPointPtr): TPoint3D;
 begin
@@ -1738,6 +2109,13 @@ begin
 	result.z += byZ;
 end;
 
+function TPoint3D.Offset (byX, byY: TFloat): TPoint3D;
+begin
+	result := self;
+	result.x += byX;
+	result.y += byY;
+end;
+
 function TPoint3D.Offset (point: TPoint3D): TPoint3D;
 begin
 	result := self;
@@ -1842,11 +2220,6 @@ begin
 	result := PointMake(x, y);
 end;
 
-function TPoint3D.XY: TPoint;
-begin
-	result := PointMake(x, y);
-end;
-
 function TPoint3D.Add (amount: TFloat): TPoint3D;
 begin
 	result := PointMake(x + amount, y + amount, z + amount);
@@ -1872,6 +2245,11 @@ begin
 	result := Sqrt(Power(x, 2) + Power(y, 2) + Power(z, 2));
 end;
 
+function TPoint3D.SquaredLength: TFloat;
+begin
+	result := Sqr(x) + Sqr(y) + Sqr(z);
+end;
+
 function TPoint3D.Normalize: TPoint3D;
 begin
 	result := self / Magnitude;
@@ -1880,6 +2258,39 @@ end;
 function TPoint3D.Dot (point: TPoint3D): TFloat;
 begin
 	result := (x * point.x) + (y * point.y) + (z * point.z);
+end;
+
+function TPoint3D.Cross (point: TPoint3D): TPoint3D;
+begin
+	result.x := (self.y * point.z) - (self.z * point.y);
+	result.y := (self.z * point.x) - (self.x * point.z);
+	result.z := (self.x * point.y) - (self.y * point.x);
+end;
+
+function TPoint3D.AngleTo(constref b:TPoint3D): TFloat;
+var
+	d: TFloat;
+begin
+	d := Sqrt(SquaredLength*b.SquaredLength);
+	if d <> 0.0 then
+		result := Dot(b)/d
+	else
+		result := 0.0;
+end;
+
+function TPoint3D.Angle(constref b,c:TPoint3D):TFloat;
+var DeltaAB,DeltaCB:TPoint3D;
+    LengthAB,LengthCB:TFloat;
+begin
+ DeltaAB:=self-b;
+ DeltaCB:=c-b;
+ LengthAB:=DeltaAB.Magnitude;
+ LengthCB:=DeltaCB.Magnitude;
+ if (LengthAB=0.0) or (LengthCB=0.0) then begin
+  result:=0.0;
+ end else begin
+  result:=ArcCos(DeltaAB.Dot(DeltaCB)/(LengthAB*LengthCB));
+ end;
 end;
 
 function TPoint3D.Negate: TPoint3D;
@@ -1929,9 +2340,9 @@ begin
 	TShow(self);
 end;
 
-function TPoint3D.Str: string;
+function TPoint3D.Str (places: integer = 0): string;
 begin
-	result := PointString(self);
+	result := '{'+self.x.Str(places)+', '+self.y.Str(places)+', '+self.z.Str(places)+'}';
 end;
 
 class function TPoint3D.Make (_x, _y, _z: TFloat): TPoint3D;
@@ -2040,10 +2451,21 @@ begin
 	result := (width = 0) and (height = 0);
 end;
 
+function TSize.IsInfinte: boolean;
+begin
+	result := (width < 0) or (height < 0);
+end;
+
 class function TSize.Make (w, h: TFloat): TSize;
 begin
 	result.width := w;
 	result.height := h;
+end;
+
+class function TSize.Make (size: TFloat): TSize;
+begin
+	result.width := size;
+	result.height := size;
 end;
 
 procedure TSize.Show;
@@ -2092,9 +2514,9 @@ begin
 	result := SizeMake(Math.Ceil(width), Math.Ceil(height));
 end;
 
-function TSize.Str: string;
+function TSize.Str (places: integer = 0): string;
 begin
-	result := TStr(self);
+	result := '{'+self.width.Str(places)+', '+self.height.Str(places)+'}';
 end;
 
 {=============================================}
@@ -2212,6 +2634,11 @@ begin
 	result := SizeMake(width, height);
 end;
 
+function TSize3D.WH: TSize;
+begin
+	result := SizeMake(width, height);
+end;
+
 function TSize3D.Sum: TFloat;
 begin
 	result := width + height + depth;
@@ -2227,9 +2654,9 @@ begin
 	result := TPoint3D.Make(width, height, depth);
 end;
 
-function TSize3D.Str: string;
+function TSize3D.Str (places: integer = 0): string;
 begin
-	result := '{'+FloatToStr(width)+', '+FloatToStr(height)+', '+FloatToStr(depth)+'}';
+		result := '{'+self.width.Str(places)+', '+self.height.Str(places)+', '+self.depth.Str(places)+'}';
 end;
 
 class function TSize3D.Make (_width, _height, _depth: TFloat): TSize3D;
@@ -2237,6 +2664,13 @@ begin
 	result.width := _width;
 	result.height := _height;
 	result.depth := _depth;
+end;
+
+class function TSize3D.Make (_volume: TFloat): TSize3D;
+begin
+	result.width := _volume;
+	result.height := _volume;
+	result.depth := _volume;
 end;
 
 class function TSize3D.Make (size: TSize): TSize3D;
@@ -2370,6 +2804,26 @@ begin
 	result := RectMake(origin.x + x, origin.y + y, size.width - (x * 2), size.height - (y * 2));
 end;
 
+function TRect.Inset (amount: TFloat): TRect;
+begin
+	result := Inset(amount, amount);
+end;
+
+function TRect.Clamp (point: TPoint): TPoint;
+begin
+	if point.x > GetMaxX then
+		point.x := GetMaxX;
+	if point.x < GetMinX then      
+		point.x := GetMinX;
+	             
+	if point.y > GetMaxY then
+		point.y := GetMaxY;
+	if point.y < GetMinY then      
+		point.y := GetMinY;      
+	
+	result := point;    
+end;
+
 function TRect.Union (rect: TRect): TRect;
 var
 	aabb: TAABB2;
@@ -2438,6 +2892,12 @@ begin
 	result := PointMake(GetMaxX, GetMaxY);
 end;
 
+function TRect.Mid: TPoint;
+begin
+	result := PointMake(GetMidX, GetMidY);
+end;
+
+
 function TRect.GetTopLeft: TPoint;
 begin
 	result := origin;
@@ -2503,6 +2963,14 @@ begin
 	result := TRect.Make(0, 0, 0, 0);
 end;
 
+class function TRect.Infinite: TRect;
+begin
+	result.origin.x := MaxInt;
+	result.origin.y := MaxInt;
+	result.size.width := -MaxInt;
+	result.size.height := -MaxInt;
+end;
+
 class function TRect.Make (x, y, width, height: TFloat): TRect;
 begin
 	result.origin.x := x;
@@ -2517,9 +2985,9 @@ begin
 	result.size := SizeMake(1, 1);
 end;
 
-function TRect.Str: string;
+function TRect.Str (places: integer = 0): string;
 begin
-	result := TStr(self);
+	result := '{'+self.origin.Str(places)+', '+self.size.Str(places)+'}';
 end;
 
 {=============================================}
@@ -2534,6 +3002,16 @@ begin
 	result.size.width := rect.size.width;
 	result.size.height := rect.size.height;
 	result.size.depth := 0;
+end;
+
+class function TRect3D.Make (rect: TRect; originZ, sizeDepth: TFloat): TRect3D;
+begin
+	result.origin.x := rect.origin.x;
+	result.origin.y := rect.origin.y;
+	result.origin.z := originZ;
+	result.size.width := rect.size.width;
+	result.size.height := rect.size.height;
+	result.size.depth := sizeDepth;
 end;
 
 class function TRect3D.Make (x, y, z, width, height, depth: TFloat): TRect3D;
@@ -2558,7 +3036,7 @@ end;
 
 function TRect3D.Min: TPoint3D;
 begin
-	result := PointMake(MinX, MinY, MinZ);
+	result := origin;
 end;
 
 function TRect3D.Max: TPoint3D;
@@ -2641,9 +3119,9 @@ begin
 	writeln(Str);
 end;
 
-function TRect3D.Str: string;
+function TRect3D.Str (places: integer = 0): string;
 begin
-	result := '{'+origin.str+', '+size.str+'}';
+	result := '{'+origin.str(places)+', '+size.str(places)+'}';
 end;
 
 function TRect3D.Inset (x, y, z: TFloat): TRect3D;

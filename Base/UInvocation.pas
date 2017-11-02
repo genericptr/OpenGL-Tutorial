@@ -24,26 +24,7 @@ type
 			constructor Create (_action: pointer; _target: TObject; _arguments: pointer = nil; _retainArguments: TInvocationRetainArgsMode = kInvocationRetainArgumentsWeak); overload;
 			constructor Create (_action: string; _target: TObject; _arguments: pointer = nil; _retainArguments: TInvocationRetainArgsMode = kInvocationRetainArgumentsWeak); overload;
 			constructor Create (_action: TInvocationCallback; _arguments: pointer = nil; _retainArguments: TInvocationRetainArgsMode = kInvocationRetainArgumentsWeak);
-			
-			{
-			constructor Instance (_action: pointer; _target: TObject; _arguments: pointer; _retainArguments: TInvocationRetainArgsMode); overload;
-			constructor Instance (_action: pointer; _target: TObject; _arguments: pointer); overload;
-			constructor Instance (_action: pointer; _target: TObject); overload;
-			constructor Instance (_action: string; _target: TObject; _arguments: pointer; _retainArguments: TInvocationRetainArgsMode); overload;
-			constructor Instance (_action: string; _target: TObject; _arguments: pointer); overload;
-			constructor Instance (_action: string; _target: TObject); overload;
-			constructor Instance (_action: TInvocationCallback; _arguments: pointer; _retainArguments: TInvocationRetainArgsMode); overload;
-			constructor Instance (_action: TInvocationCallback; _arguments: pointer); overload;
-			
-			constructor Create (_action: pointer; _target: TObject; _arguments: pointer; _retainArguments: TInvocationRetainArgsMode); overload;
-			constructor Create (_action: pointer; _target: TObject; _arguments: pointer); overload;
-			constructor Create (_action: pointer; _target: TObject); overload;
-			constructor Create (_action: string; _target: TObject); overload;
-			constructor Create (_action: TInvocationCallback); overload;
-			constructor Create (_action: TInvocationCallback; _arguments: pointer); overload;
-			constructor Create (_action: TInvocationCallback; _arguments: pointer; _retainArguments: TInvocationRetainArgsMode);
-			}
-			
+						
 			procedure Invoke (_arguments: pointer); virtual; overload;
 			procedure Invoke; virtual; overload;
 			

@@ -6,7 +6,7 @@ unit UArray;
 interface
 uses
 	FPJSON, JSONParser, TypInfo,
-	UString, UValue, UObject, UGeometry, SysUtils;
+	UTypes, UString, UValue, UObject, UGeometry, SysUtils;
 
 
 const
@@ -23,7 +23,7 @@ const
 	kArrayComparatorEqualTo = kOrderedSame;
 	
 type
-	TArrayComparatorResult = integer;
+	TArrayComparatorResult = TOrderedValue;
 	TArrayComparatorResultHelper = type helper for TArrayComparatorResult
 		function GreaterThan: boolean;
 		function LessThan: boolean;
@@ -34,22 +34,21 @@ type
 
 type
 	generic TStaticArray<T> = class (TObject)
-		public
-			type
-				TComparator = function (value1: T; value2: T; context: pointer): TArrayComparatorResult;
-				TValuesArray = array of T;
+		public type TComparator = function (value1: T; value2: T; context: pointer): TArrayComparatorResult;
+		public type TValuesArray = array[0..0] of T;
+		public type TValuesArrayPtr = ^TValuesArray;
+		private
+			ref: TValuesArrayPtr;
 		private
 			type
-				TArrayEnumerator = class
+				TArrayEnumerator = record
 					private
 						root: TStaticArray;
 						currentValue: T;
-					protected
 						index: TArrayIndex;
 					public
 						constructor Create(_root: TStaticArray); 
 						function MoveNext: Boolean;
-						procedure Reset;
 						property Current: T read currentValue;
 				end;
 		public		
@@ -70,14 +69,15 @@ type
 			function GetValue (index: TArrayIndex): T; inline; overload;
 			function GetValue (index: TArrayIndex; out value): boolean; inline; overload;
 			
-			function GetFirstValue: T;
-			function GetLastValue: T;
-			function GetAllValues: TValuesArray;
-			property Values: TValuesArray read GetAllValues;
+			function GetFirstValue: T; inline;
+			function GetLastValue: T; inline;
 			
 			function GetIndexOfValue (value: T): TArrayIndex;
 			function ContainsValue (value: T): boolean;
 			function GetCountOfValues (value: T): integer;
+			
+			function FirstValuePtr: Pointer;
+			property Values: TValuesArrayPtr read ref;
 			
 			{ Sorting }
 			procedure Sort (comparator: TComparator; context: pointer = nil); overload;
@@ -87,28 +87,29 @@ type
 			procedure Show; override;
 			
 		public
-			property ArrayValues[const index:TArrayIndex]:T read GetValue; default;	
+			property ArrayValues[const index:TArrayIndex]:T read GetValue; default;
 		protected
 			procedure CopyInstanceVariables (clone: TObject); override;
 			procedure Initialize; override;
 			procedure Deallocate; override;
 									
 		private
-			ref: TValuesArray;
 			weakRetain: boolean;
 			typeKind: TTypeKind;
 			lastIndex: TArrayIndex;
+			totalElements: TArrayIndex;
 			
 			{ Memory Management }
 			procedure RetainValue (value: T); inline;
 			procedure ReleaseValue (value: T); inline;
 			procedure AutoReleaseValue (value: T); inline;
+			procedure SetElements (newElements: TArrayIndex); inline;
 			
 			function CompareValues (a, b: T): boolean; inline;
 			function IsDefault (value: T): boolean; inline;
 			
-			procedure QuickSort (var x: TValuesArray; first, last: LongInt; comparator: TComparator; context: pointer);
-			procedure SetAndRetainValue (index: TArrayIndex; value: T);
+			procedure QuickSort (var x: TValuesArrayPtr; first, last: LongInt; comparator: TComparator; context: pointer);
+			procedure SetAndRetainValue (index: TArrayIndex; value: T); inline;
 			procedure PrintValue (value: T);
 	end;
 
@@ -122,7 +123,7 @@ type
 			
 			{ Removing Values }
 			procedure RemoveIndex (index: TArrayIndex); virtual; abstract;
-			procedure RemoveFirstValue (value: T);
+			function RemoveFirstValue (value: T): TArrayIndex;
 			procedure RemoveAllValues (value: T);
 			procedure RemoveValuesFromArray (otherArray: TDynamicArray);
 			
@@ -144,7 +145,7 @@ type
 			constructor Instance (_growSize: integer; _shrinks: boolean); overload;
 			
 			{ Adding Values }
-			procedure AddValue (value: T); virtual;
+			procedure AddValue (value: T); inline;
 			procedure AddValuesFromArray (otherArray: TGenericArray);
 			procedure AddValues (in_values: array of T);
 			procedure InsertValue (value: T; index: TArrayIndex);
@@ -153,8 +154,11 @@ type
 						
 			{ Removing Values }
 			procedure RemoveIndex (index: TArrayIndex); override;
-			procedure RemoveAllValues;
+			procedure RemoveAllValues; inline;
 			procedure RemoveValues (index, elements: TArrayIndex);
+			
+			function PopFirst: T;
+			function PopLast: T;
 			
 			{ Replacing Values }
 			procedure ReplaceValue (index: TArrayIndex; value: T);
@@ -162,17 +166,21 @@ type
 			
 			{ Space }
 			procedure Release; virtual;
-			procedure SetGrowSize (newValue: integer); 
-			
+			procedure SetGrowSize (newValue: integer; _expGrow: boolean = false); 
+		
+		public
+			property ArrayValues[const index:TArrayIndex]:T read GetValue write ReplaceValue; default;
 		protected
 			procedure Initialize; override;
 			
 		private
 			growSize: TArrayIndex;
+			expGrow: boolean;
 			shrinks: boolean;
 			pool: TObject;
 			detachedFromPool: boolean;
 			
+			procedure GrowToFit; inline;
 			procedure SetLastIndex (index: TArrayIndex);
 	end;
 
@@ -186,13 +194,22 @@ type
 			
 			{ Set Values }
 			procedure SetValue (index: TArrayIndex; value: T);
-						
+			procedure Fill (value: T); overload;
+			
 			{ Removing Values }
 			procedure RemoveIndex (index: TArrayIndex); override;
 			procedure Clear;
 			
 			{ Memory }
 			procedure Resize (newSize: TArrayIndex);
+		public
+			property ArrayValues[const index:TArrayIndex]:T read GetValue write SetValue; default;
+	end;
+
+type
+	TFixedArray = class (specialize TGenericFixedArray<TObject>)
+		public			
+			procedure Fill (value: TObjectClass); overload;
 	end;
 
 type
@@ -211,7 +228,6 @@ type
 	TArray = class (specialize TGenericArray<TObject>)
 		public			
 			class function ArrayWithValues (args: array of const): TArray;
-			procedure AddValue (value: TObject); overload; override;			
 	end;
 	TArrayComparator = TArray.TComparator;
 	TArrayValues = TArray.TValuesArray;
@@ -225,10 +241,6 @@ type
 
 type
 	TArrayCommonTypesHelper = class helper(TArrayHelper) for TArray
-		procedure AddValue (value: string); overload;
-		procedure AddValue (value: boolean); overload;
-		procedure AddValue (value: integer); overload;
-		
 		function GetStringValue (index: TArrayIndex): string;
 		function GetIntegerValue (index: TArrayIndex): integer;
 		function GetBooleanValue (index: TArrayIndex): boolean;
@@ -245,10 +257,10 @@ type
 
 { Fixed Array Types }
 type
-	TFixedArray = specialize TGenericFixedArray<TObject>;
 	TFixedIntegerArray = specialize TGenericFixedArray<Integer>;
 	TFixedStringArray = specialize TGenericFixedArray<String>;
 	TFixedPointerArray = specialize TGenericFixedArray<Pointer>;
+	TFixedFloatArray = specialize TGenericFixedArray<TFloat>;
 	
 { Dynamic Array Types }
 type
@@ -257,12 +269,14 @@ type
 	TStringArray = specialize TGenericArray<String>;
 	TSingleArray = specialize TGenericArray<Single>;
 	TDoubleArray = specialize TGenericArray<Double>;
+	TFloatArray = specialize TGenericArray<TFloat>;
 	TPointerArray = specialize TGenericArray<Pointer>;
 
 type
 	TPointArray = specialize TGenericArray<TPoint>;
 	TPoint3DArray = specialize TGenericArray<TPoint3D>;
 	TRectArray = specialize TGenericArray<TRect>;
+	TSizeArray = specialize TGenericArray<TSize>;
 
 var
 	ObjectArrayPool: TStack = nil;
@@ -284,8 +298,28 @@ function TARR (args: array of const): TArray; overload;
 {$define OUTPUT := TIntegerArray}
 {$i UArrayOperators.inc}
 
+{$define INPUT := TFloat}
+{$define OUTPUT := TFloatArray}
+{$i UArrayOperators.inc}
+
+{$define INPUT := String}
+{$define OUTPUT := TStringArray}
+{$i UArrayOperators.inc}
+
 {$define INPUT := Pointer}
 {$define OUTPUT := TPointerArray}
+{$i UArrayOperators.inc}
+
+{$define INPUT := TPoint}
+{$define OUTPUT := TPointArray}
+{$i UArrayOperators.inc}
+
+{$define INPUT := TPoint3D}
+{$define OUTPUT := TPoint3DArray}
+{$i UArrayOperators.inc}
+
+{$define INPUT := TSize}
+{$define OUTPUT := TSizeArray}
 {$i UArrayOperators.inc}
 
 {$undef INTERFACE}
@@ -307,8 +341,28 @@ implementation
 {$define OUTPUT := TIntegerArray}
 {$i UArrayOperators.inc}
 
+{$define INPUT := TFloat}
+{$define OUTPUT := TFloatArray}
+{$i UArrayOperators.inc}
+
+{$define INPUT := String}
+{$define OUTPUT := TStringArray}
+{$i UArrayOperators.inc}
+
 {$define INPUT := Pointer}
 {$define OUTPUT := TPointerArray}
+{$i UArrayOperators.inc}
+
+{$define INPUT := TPoint}
+{$define OUTPUT := TPointArray}
+{$i UArrayOperators.inc}
+
+{$define INPUT := TPoint3D}
+{$define OUTPUT := TPoint3DArray}
+{$i UArrayOperators.inc}
+
+{$define INPUT := TSize}
+{$define OUTPUT := TSizeArray}
 {$i UArrayOperators.inc}
 
 {$undef IMPLEMENTATION}
@@ -412,10 +466,12 @@ function TArrayJSONHelpers.GetJSONString: string;
 var
 	arr: TJSONArray;
 	value: TObject;
+	i: integer;
 begin
 	arr := TJSONArray.Create;
-	for pointer(value) in GetAllValues do
+	for i := 0 to High do
 		begin
+			value := GetValue(i);
 			if value.IsMember(TString) then
 				arr.Add(TString(value).GetString)
 			else if value.IsMember(TValue) then
@@ -429,20 +485,6 @@ end;
 {=============================================}
 {@! ___ARRAY COMMON TYPES HELPER___ } 
 {=============================================}
-procedure TArrayCommonTypesHelper.AddValue (value: string);
-begin
-	AddValue(TSTR(value));
-end;
-
-procedure TArrayCommonTypesHelper.AddValue (value: boolean);
-begin
-	AddValue(TNUM(value));
-end;
-
-procedure TArrayCommonTypesHelper.AddValue (value: integer);
-begin
-	AddValue(TNUM(value));
-end;
 
 function TArrayCommonTypesHelper.GetStringValue (index: TArrayIndex): string;
 begin
@@ -552,13 +594,14 @@ begin
 	end;
 end;
 }
+
 {=============================================}
 {@! ___ENUMERATOR___ } 
 {=============================================} 
 constructor TStaticArray.TArrayEnumerator.Create(_root: TStaticArray);
 begin
-	inherited Create;
 	root := _root;
+	index := 0;
 end;
 	
 function TStaticArray.TArrayEnumerator.MoveNext: Boolean;
@@ -567,16 +610,11 @@ var
 begin
 	count := root.Count;
 	if index < count then
-		currentValue := root.ref[index]
+		currentValue := root.GetValue(index)
 	else
 		currentValue := Default(T);
 	index += 1;
 	result := index <= count;
-end;
-	
-procedure TStaticArray.TArrayEnumerator.Reset;
-begin
-	index := 0;
 end;
 
 {=============================================}
@@ -588,14 +626,14 @@ var
 	value: T;
 begin
 	value := GetLastValue;
-	ref[High] := Default(T);
+	ref^[High] := Default(T);
 	lastIndex -= 1;
 	result := value;
 end;
 
 procedure TGenericStack.Push (value: T);
 begin
-	if lastIndex = Length(ref) then
+	if lastIndex = TotalElements then
 		Grow(growSize);
 	lastIndex += 1;
 	SetAndRetainValue(High, value);
@@ -610,30 +648,54 @@ begin
 end;
 
 {=============================================}
+{@! ___ FIXED ARRAY___ } 
+{=============================================}
+procedure TFixedArray.Fill (value: TObjectClass);
+var
+	i: integer;
+	obj: TObject;
+begin
+	for i := 0 to High do
+		begin
+			obj := value.Create;
+			SetValue(i, obj);
+			obj.Release;
+		end;
+end;
+
+{=============================================}
 {@! ___GENERIC FIXED ARRAY___ } 
 {=============================================}
 // Resize array to requested size or shrink last index
 // if the requested size is smaller than current size
 procedure TGenericFixedArray.Resize (newSize: TArrayIndex);
 begin
-	if Length(ref) < newSize then
-		SetLength(ref, newSize);
+	if TotalElements < newSize then
+		SetElements(newSize);
 	lastIndex := newSize;
+end;
+
+procedure TGenericFixedArray.Fill (value: T);
+var
+	i: integer;
+begin
+	for i := 0 to High do
+		SetValue(i, value);
 end;
 
 procedure TGenericFixedArray.SetValue (index: TArrayIndex; value: T);
 begin
-//	Fatal(not fixedLength, 'TGenericArray.SetValue: array must be fixed length.');
+	//Fatal(not fixedLength, 'TGenericArray.SetValue: array must be fixed length.');
 	Fatal(index >= Count, 'TGenericArray.SetValue: index '+IntToStr(index)+' is out of range ('+IntToStr(Count)+')');
-	ReleaseValue(ref[index]);
-	ref[index] := value;
+	ReleaseValue(GetValue(index));
+	ref^[index] := value;
 	RetainValue(value);
 end;
 
 procedure TGenericFixedArray.RemoveIndex (index: TArrayIndex);
 begin
-	ReleaseValue(ref[index]);
-	ref[index] := Default(T);
+	ReleaseValue(GetValue(index));
+	ref^[index] := Default(T);
 end;
 
 procedure TGenericFixedArray.Clear;
@@ -643,21 +705,22 @@ begin
 	if Count = 0 then
 		exit;
 	if weakRetain then
-		FillChar(ref[0], Sizeof(T) * Length(ref), 0)
+		FillChar(ref[0], Sizeof(T) * TotalElements, 0)
 	else
 		begin
 			for i := 0 to High do
-			if ref[i] <> Default(T) then
+			if GetValue(i) <> Default(T) then
 				begin
-					ReleaseValue(ref[i]);
-					ref[i] := Default(T);
+					ReleaseValue(GetValue(i));
+					ref^[i] := Default(T);
 				end;
 		end;
 end;
 
 constructor TGenericFixedArray.Create (size: integer);
 begin
-	SetLength(ref, size);
+	SetElements(size);
+	FillChar(ref[0], Sizeof(T) * size, 0);
 	lastIndex := size;
 	Initialize;
 end;
@@ -692,14 +755,23 @@ end;
 
 procedure TGenericArray.ReplaceValue (index: TArrayIndex; value: T);
 begin
-	ReleaseValue(ref[index]);
+	ReleaseValue(GetValue(index));
 	SetAndRetainValue(index, value);
+end;
+
+procedure TGenericArray.GrowToFit; 
+begin
+	if lastIndex = TotalElements then
+		begin
+			Grow(growSize);
+			if expGrow then
+				growSize := growSize * 2;
+		end;
 end;
 
 procedure TGenericArray.AddValue (value: T);
 begin
-	if lastIndex = Length(ref) then
-		Grow(growSize);
+	GrowToFit;
 	SetLastIndex(lastIndex + 1);
 	SetAndRetainValue(High, value);
 end;
@@ -738,8 +810,7 @@ procedure TGenericArray.InsertValue (value: T; index: TArrayIndex);
 var
   tail: TArrayIndex;
 begin
-	if lastIndex = Length(ref) then
-		Grow(growSize);
+	GrowToFit;
   tail := lastIndex - index;
   if tail > 0 then
     Move(ref[index], ref[index + 1], SizeOf(T) * tail);
@@ -759,7 +830,7 @@ procedure TGenericArray.AddValues (in_values: array of T);
 var
 	i: TArrayIndex;
 begin
-	if lastIndex = Length(ref) then
+	if lastIndex = TotalElements then
 		Grow(Length(in_values));
 	for i := 0 to Length(in_values) - 1 do
 		AddValue(in_values[i]);
@@ -772,9 +843,23 @@ var
 begin
 	if not weakRetain then
 	for i := index to index + elements do
-		ReleaseValue(ref[i]);
+		ReleaseValue(GetValue(i));
 	Move(ref[index + elements], ref[index], SizeOf(T) * elements);
 	SetLastIndex(lastIndex - elements);
+end;
+
+function TGenericArray.PopFirst: T;
+begin
+	result := GetValue(0);
+	RetainValue(result);
+	RemoveIndex(0);
+end;
+
+function TGenericArray.PopLast: T;
+begin
+	result := GetValue(High);
+	RetainValue(result);
+	RemoveIndex(High);
 end;
 
 procedure TGenericArray.RemoveIndex (index: TArrayIndex);
@@ -784,11 +869,11 @@ var
 begin
 	if index = High then
 		begin
-			ReleaseValue(ref[index]);
+			ReleaseValue(GetValue(index));
 			SetLastIndex(lastIndex - 1);
 			exit;
 		end;
-	ReleaseValue(ref[index]);
+	ReleaseValue(GetValue(index));
 	tail := lastIndex - index;
 	if tail > 0 then
 		begin
@@ -806,8 +891,8 @@ begin
 	if not weakRetain then
 		begin
 			for i := 0 to High do
-			if not IsDefault(ref[i]) then
-				ReleaseValue(ref[i]);
+			if not IsDefault(GetValue(i)) then
+				ReleaseValue(GetValue(i));
 		end;
 	SetLastIndex(0);
 end;
@@ -833,9 +918,10 @@ begin
 	lastIndex := index;
 end;
 
-procedure TGenericArray.SetGrowSize (newValue: integer); 
+procedure TGenericArray.SetGrowSize (newValue: integer; _expGrow: boolean = false); 
 begin
 	growSize := newValue;
+	expGrow := _expGrow;
 end;
 
 procedure TGenericArray.Initialize; 
@@ -851,14 +937,15 @@ end;
 constructor TGenericArray.Create (defaultSize: integer);
 begin
 	Initialize;
+	shrinks := false;
 	Reserve(defaultSize);
 end;
 
 constructor TGenericArray.Create (_growSize: integer; _shrinks: boolean);
 begin
+	Initialize;
 	growSize := _growSize;
 	shrinks := _shrinks;
-	Initialize;
 end;
 
 constructor TGenericArray.Instance (_growSize: integer; _shrinks: boolean);
@@ -913,7 +1000,7 @@ begin
 		begin
 			arr := TGenericArray.Create;
 			arr.Reserve(elements);
-			// ???SetPool(stack)
+			// NOTE: should be SetPool(stack)
 			arr.pool := stack;
 			stack.Push(arr);
 			arr.Release;
@@ -928,22 +1015,22 @@ procedure TDynamicArray.Swap (src, dest: TArrayIndex);
 var
 	tmp: T;
 begin
-	tmp := ref[dest];
-	ref[dest] := ref[src];
-	ref[src] := tmp;
+	tmp := ref^[dest];
+	ref^[dest] := ref^[src];
+	ref^[src] := tmp;
 end;
 
 // Resize array so it has at least x elements
 procedure TDynamicArray.Reserve (elements: integer);
 begin
-	if Length(ref) < elements then
-		SetLength(ref, elements);
+	if TotalElements < elements then
+		SetElements(elements);
 end;
 
 // Resize array so it has x more elements
 procedure TDynamicArray.Grow (elements: integer);
 begin
-	SetLength(ref, Length(ref) + elements);
+	SetElements(TotalElements + elements);
 end;
 
 procedure TDynamicArray.RemoveValuesFromArray (otherArray: TDynamicArray);
@@ -959,7 +1046,7 @@ begin
 		end;
 end;
 
-procedure TDynamicArray.RemoveFirstValue (value: T);
+function TDynamicArray.RemoveFirstValue (value: T): TArrayIndex;
 var
 	index: TArrayIndex;
 begin
@@ -969,6 +1056,7 @@ begin
 	index := GetIndexOfValue(value);
 	if index <> kArrayInvalidIndex then
 		RemoveIndex(index);
+	result := index;
 end;
 
 procedure TDynamicArray.RemoveAllValues (value: T);
@@ -995,7 +1083,7 @@ end;
 function TStaticArray.Count: TArrayIndex;
 begin
 	if lastIndex = kArrayLiteralSize then
-		result := Length(ref)
+		result := TotalElements
 	else
 		result := lastIndex;
 end;
@@ -1010,11 +1098,6 @@ begin
 	result := GetValue(0);
 end;
 
-function TStaticArray.GetAllValues: TValuesArray;
-begin
-	result := ref;
-end;
-
 function TStaticArray.GetLastValue: T;
 begin
 	result := GetValue(Count - 1);
@@ -1024,25 +1107,13 @@ function TStaticArray.GetValue (index: TArrayIndex; out value): boolean;
 var
 	_value: T absolute value;
 begin
-	_value := ref[index];
+	_value := ref^[index];
 	result := true;
-	exit;
-	{if (Count > 0) and (index < Count) then
-		begin
-			_value := ref[index];
-			result := true;
-		end
-	else
-		result := false;}
 end;
 
 function TStaticArray.GetValue (index: TArrayIndex): T;
 begin
-	result := ref[index]
-	{if (Count > 0) and (index < Count) then
-		result := ref[index]
-	else
-		result := Default(T);}
+	result := ref^[index];
 end;
 
 procedure TStaticArray.AutoReleaseValue (value: T);
@@ -1071,7 +1142,7 @@ end;
 
 procedure TStaticArray.SetAndRetainValue (index: TArrayIndex; value: T);
 begin
-	ref[index] := value;
+	ref^[index] := value;
 	RetainValue(value);
 end;
 
@@ -1085,6 +1156,11 @@ begin
 	result := TArrayEnumerator.Create(self);
 end;
 
+function TStaticArray.FirstValuePtr: Pointer;
+begin
+	result := @ref^[0];
+end;
+
 function TStaticArray.GetCountOfValues (value: T): integer;
 var
 	i: integer;
@@ -1093,7 +1169,7 @@ begin
 	result := 0;
 	for i := 0 to High do
 		begin
-			theValue := ref[i];
+			theValue := GetValue(i);
 			if CompareValues(theValue, value) then
 				result += 1;
 		end;
@@ -1107,7 +1183,7 @@ begin
 	result := kArrayInvalidIndex;
 	for i := 0 to High do
 		begin
-			theValue := ref[i];
+			theValue := GetValue(i);
 			if not IsDefault(theValue) and CompareValues(theValue, value) then
 				exit(i);
 		end;
@@ -1126,7 +1202,7 @@ begin
 	result := value = Default(T);
 end;
 
-procedure TStaticArray.QuickSort (var x: TValuesArray; first, last: LongInt; comparator: TComparator; context: pointer);
+procedure TStaticArray.QuickSort (var x: TValuesArrayPtr; first, last: LongInt; comparator: TComparator; context: pointer);
 var
 	pivot,j,i: integer;
 	temp: T;
@@ -1139,21 +1215,21 @@ begin
 
       while(i<j)do
 				begin
-					while(comparator(x[i], x[pivot], context).LessThanOrEqualTo and (i<last)) do
+					while(comparator(x^[i], x^[pivot], context).LessThanOrEqualTo and (i<last)) do
 						i += 1;
-					while(comparator(x[j], x[pivot], context).GreaterThan) do
+					while(comparator(x^[j], x^[pivot], context).GreaterThan) do
 						j -= 1;
 					if i<j then
 						begin
-							temp:=x[i];
-							x[i]:=x[j];
-							x[j]:=temp;
+							temp:=x^[i];
+							x^[i]:=x^[j];
+							x^[j]:=temp;
 						end;
 				end;
 				
-			temp:=x[pivot];
-			x[pivot]:=x[j];
-			x[j]:=temp;
+			temp:=x^[pivot];
+			x^[pivot]:=x^[j];
+			x^[j]:=temp;
 			QuickSort(x,first,j-1,comparator,context);
 			QuickSort(x,j+1,last,comparator,context);
 		end;
@@ -1172,10 +1248,10 @@ var
 begin
 	inherited CopyInstanceVariables(clone);
 	
-	SetLength(ref, source.Count);
+	SetElements(source.Count);
 	
 	if weakRetain then
-		Move(source.ref[0], ref[0], Sizeof(T) * Length(ref))
+		Move(source.ref[0], ref[0], Sizeof(T) * TotalElements)
 	else
 		begin
 			for i := 0 to source.High do
@@ -1189,26 +1265,7 @@ end;
 
 procedure TStaticArray.PrintValue (value: T);
 begin
-	case typeKind of
-		tkClass:
-			begin
-				if not IsDefault(value) then
-					TObjectPtr(@value)^.Show
-				else
-					writeln('nil');
-			end;
-		tkPointer:
-			begin
-				if not IsDefault(value) then
-					writeln(HexStr(PPointer(@value)^))
-				else
-					writeln('nil');
-			end;
-		tkRecord:
-			writeln('record');
-		otherwise
-			writeln(PInteger(@value)^); // this is just a hack to print compiler types
-	end;
+	UObject.PrintValue(typeKind, @value);
 end;
 
 procedure TStaticArray.Show;
@@ -1219,9 +1276,16 @@ begin
 	for i := 0 to High do
 		begin
 			write(i, ': ');
-			PrintValue(ref[i]);
+			PrintValue(GetValue(i));
 		end;
 	writeln(')');
+end;
+
+procedure TStaticArray.SetElements (newElements: TArrayIndex); 
+begin
+	//writeln(GetDebugString, ' SetElements ', newElements);
+	ReAllocMem(ref, newElements * SizeOf(T));
+	totalElements := newElements;
 end;
 
 procedure TStaticArray.Deallocate;
@@ -1231,7 +1295,7 @@ begin
 	if not weakRetain then
 	for i := 0 to High do
 		ReleaseValue(GetValue(i));
-	
+	FreeMem(ref);
 	inherited Deallocate;
 end;
 
@@ -1255,7 +1319,7 @@ var
 	i: TArrayIndex;
 begin
 	Initialize;
-	SetLength(ref, Length(values));
+	SetElements(Length(values));
 	lastIndex := kArrayLiteralSize;
 	for i := 0 to Length(values) - 1 do
 		SetAndRetainValue(i, values[i]);
@@ -1266,7 +1330,7 @@ var
 	i: TArrayIndex;
 begin
 	Initialize;
-	SetLength(ref, otherArray.Count);
+	SetElements(otherArray.Count);
 	lastIndex := kArrayLiteralSize;
 	for i := 0 to otherArray.High do
 		SetAndRetainValue(i, otherArray.GetValue(i));
@@ -1281,7 +1345,7 @@ end;
 constructor TStaticArray.ArrayWithValue (value: T);
 begin
 	Create;
-	SetLength(ref, 1);
+	SetElements(1);
 	lastIndex := kArrayLiteralSize;
 	SetAndRetainValue(0, value);
 	AutoRelease;
@@ -1290,12 +1354,6 @@ end;
 {=============================================}
 {@! ___ARRAY___ } 
 {=============================================}
-
-// needed for helper classes
-procedure TArray.AddValue (value: TObject);
-begin
-	inherited AddValue(value);
-end;
 
 class function TArray.ArrayWithValues (args: array of const): TArray;
 var

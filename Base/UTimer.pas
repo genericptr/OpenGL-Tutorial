@@ -60,6 +60,8 @@ type
 			
 			{ Accessors }
 			procedure SetName (newValue: string);
+			procedure SetStartDelay (newValue: TimerInterval);
+			
 			function GetArguments: pointer;
 			function GetInvocation: TInvocation;
 			function IsValid: boolean;
@@ -82,6 +84,8 @@ type
 		private
 			dispatcher: TTimerDispatcher;
 			intervalCount: LongInt;
+			startDelay: TimerInterval;
+			startDelayIntervalCount: LongInt; 
 			repeats: boolean;
 			valid: boolean;
 			invocation: TInvocation;
@@ -240,7 +244,13 @@ begin
 		begin
 		
 			// decrement count
-			timer.intervalCount -= 1;
+			if timer.startDelayIntervalCount = 0 then
+				timer.intervalCount -= 1
+			else
+				begin
+					timer.startDelayIntervalCount -= 1;
+					continue;
+				end;
 			
 			// invoke and set current timer
 			if timer.intervalCount <= 0 then
@@ -379,6 +389,12 @@ begin
 	name := newValue;
 end;
 
+procedure TTimer.SetStartDelay (newValue: TimerInterval);
+begin
+	startDelay := newValue;
+	startDelayIntervalCount := Round(startDelay * GetPreferredSystemFrameRate);
+end;
+
 function TTimer.GetArguments: pointer;
 begin
 	result := invocation.GetArguments;
@@ -427,6 +443,9 @@ end;
 
 function TTimer.Fire: boolean;
 begin
+	// can't fire yet!
+	if startDelayIntervalCount > 0 then
+		exit(false);
 	invocation.Invoke;
 	result := GetRepeats;
 end;

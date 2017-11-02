@@ -37,7 +37,7 @@ type
 			procedure SetNumberOfLoops (newValue: integer); virtual; abstract;
 			procedure SetPan (newValue: TFloat); virtual; abstract;
 			
-			procedure SetMaximumVolume (newValue: TFloat);
+			procedure SetMaximumVolume (newValue: TFloat); 
 			procedure SetSource (newValue: TObject);
 			function GetMaximumVolume: TFloat;
 			function GetSource: TObject;

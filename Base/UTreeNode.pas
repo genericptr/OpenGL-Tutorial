@@ -6,38 +6,42 @@ uses
 	UArray, UObject;
 
 type
-	TTreeNode = class (TObject)
-		public
+	generic TGenericTreeNode<T> = class (TObject)
+		private
+			m_value: T;
+		public			
+			
+			{ Constructors }
+			constructor Create (inValue: T); overload;
+
 			{ Accessors }
-			function GetParent: TTreeNode;
+			function GetParent: TGenericTreeNode;
 			function GetChildren: TArray;
 			function GetChildrenIncludingSelf: TArray;
-			function GetChild (index: integer): TTreeNode;
+			function GetChild (index: integer): TGenericTreeNode;
 			function GetIndex: integer;
 			function GetAllChildren: TArray;
 			function GetAllChildrenIncludingSelf: TArray;
-			function GetRoot: TTreeNode;
+			function GetRoot: TGenericTreeNode;
 			
 			function IsRoot: boolean;
 			
-			{ State }
-			procedure SetExpanded (newValue: boolean);
-			function IsExpanded: boolean;
-			function IsExpandable: boolean;
+			procedure SetValue (newValue: T);
+			property Value: T read m_value write SetValue;
 			
 			{ Methods }
-			function ChildCount: integer;
-			function HasChildren: boolean;
-			procedure AddChild (child: TTreeNode);
-			procedure InsertChild (child: TTreeNode; index: integer); overload;
-			procedure InsertChild (child: TTreeNode; index: integer; respectArrayBounds: boolean); overload;
-			procedure InsertChildBefore (child: TTreeNode);
-			procedure InsertChildAfter (child: TTreeNode);
-			procedure RemoveChild (child: TTreeNode); overload;
+			function ChildCount: integer; inline;
+			function HasChildren: boolean; inline;
+			procedure AddChild (child: TGenericTreeNode);
+			procedure InsertChild (child: TGenericTreeNode; index: integer); overload;
+			procedure InsertChild (child: TGenericTreeNode; index: integer; respectArrayBounds: boolean); overload;
+			procedure InsertChildBefore (child: TGenericTreeNode);
+			procedure InsertChildAfter (child: TGenericTreeNode);
+			procedure RemoveChild (child: TGenericTreeNode); overload;
 			procedure RemoveChild (index: integer); overload;
 			procedure RemoveAllChildren;
 			procedure RemoveFromParent;
-			function ContainsChild (child: TTreeNode; deep: boolean): boolean;
+			function ContainsChild (child: TGenericTreeNode; deep: boolean): boolean;
 			procedure ShowAll;
 			
 		protected
@@ -48,28 +52,27 @@ type
 			{ Notifications }
 			procedure HandleParentChanged; virtual;
 			procedure HandleChildrenChanged; virtual;
-			procedure HandleExpandStateChanged; virtual;
 			
 		private
-			parent: TTreeNode;
+			parent: TGenericTreeNode;
 			children: TArray;
-			expanded: boolean;
 			
 			procedure Show (indent: string); overload;
 			procedure GetChildrenRecursive (var list: TArray);
-			procedure SetParent (newValue: TTreeNode);
+			procedure SetParent (newValue: TGenericTreeNode);
 	end;
-
+	TTreeNode = specialize TGenericTreeNode<TObject>;
+	
 implementation
 
-procedure TTreeNode.ShowAll;
+procedure TGenericTreeNode.ShowAll;
 begin
 	Show('');
 end;
 
-procedure TTreeNode.Show (indent: string);
+procedure TGenericTreeNode.Show (indent: string);
 var
-	node: TTreeNode;
+	node: TGenericTreeNode;
 begin
 	write(indent);
 	Show;
@@ -77,51 +80,44 @@ begin
 		node.Show(indent+'  ');
 end;
 
-procedure TTreeNode.SetExpanded (newValue: boolean);
-var
-	changed: boolean;
-begin
-	changed := expanded <> newValue;
-	expanded := newValue;
-	if changed then
-		HandleExpandStateChanged;
-end;
-
-function TTreeNode.GetParent: TTreeNode;
+function TGenericTreeNode.GetParent: TGenericTreeNode;
 begin
 	result := parent;
 end;
 
-function TTreeNode.GetChildren: TArray;
+function TGenericTreeNode.GetChildren: TArray;
 begin
 	result := children;
 end;
 
-function TTreeNode.GetChildrenIncludingSelf: TArray;
+function TGenericTreeNode.GetChildrenIncludingSelf: TArray;
 begin
 	result := TArray(children.Copy.AutoRelease);
 	result.AddValue(self);
 end;
 
-function TTreeNode.GetChild (index: integer): TTreeNode;
+function TGenericTreeNode.GetChild (index: integer): TGenericTreeNode;
 begin
-	result := TTreeNode(children.GetValue(index));
+	result := TGenericTreeNode(children.GetValue(index));
 end;
 
-function TTreeNode.ChildCount: integer;
+function TGenericTreeNode.ChildCount: integer;
 begin
-	result := children.Count;
+	if children <> nil then
+		result := children.Count
+	else
+		result := 0;
 end;
 
-function TTreeNode.HasChildren: boolean;
+function TGenericTreeNode.HasChildren: boolean;
 begin
-	result := children.Count > 0;
+	result := ChildCount > 0;
 end;
 
-function TTreeNode.GetIndex: integer;
+function TGenericTreeNode.GetIndex: integer;
 var
 	i: integer;
-	node: TTreeNode;
+	node: TGenericTreeNode;
 begin
 
 	// return -1 for root
@@ -138,9 +134,9 @@ begin
 		end;
 end;
 
-procedure TTreeNode.GetChildrenRecursive (var list: TArray);
+procedure TGenericTreeNode.GetChildrenRecursive (var list: TArray);
 var
-	child: TTreeNode;
+	child: TGenericTreeNode;
 begin	
 	for pointer(child) in children do
 		begin
@@ -149,15 +145,15 @@ begin
 		end;
 end;
 
-function TTreeNode.GetAllChildren: TArray;
+function TGenericTreeNode.GetAllChildren: TArray;
 begin
 	result := TArray.Instance;
 	GetChildrenRecursive(result);
 end;
 
-function TTreeNode.GetRoot: TTreeNode;
+function TGenericTreeNode.GetRoot: TGenericTreeNode;
 var
-	node: TTreeNode;
+	node: TGenericTreeNode;
 begin
 	if GetParent = nil then
 		exit(self);
@@ -171,31 +167,23 @@ begin
 	result := node;
 end;
 
-function TTreeNode.GetAllChildrenIncludingSelf: TArray;
+function TGenericTreeNode.GetAllChildrenIncludingSelf: TArray;
 begin
 	result := GetAllChildren;
 	result.InsertValue(self, 0);
 end;
 
-function TTreeNode.IsExpanded: boolean;
+procedure TGenericTreeNode.SetValue (newValue: T);
 begin
-	result := expanded;
+	m_value := newValue;
 end;
 
-function TTreeNode.IsExpandable: boolean;
-begin
-	if children <> nil then
-		result := children.Count > 0
-	else
-		result := false;
-end;
-
-function TTreeNode.IsRoot: boolean;
+function TGenericTreeNode.IsRoot: boolean;
 begin
 	result := parent = nil;
 end;
 
-procedure TTreeNode.SetParent (newValue: TTreeNode);
+procedure TGenericTreeNode.SetParent (newValue: TGenericTreeNode);
 var
 	changed: boolean;
 begin
@@ -205,14 +193,14 @@ begin
 		HandleParentChanged;
 end;
 
-procedure TTreeNode.AddChild (child: TTreeNode);
+procedure TGenericTreeNode.AddChild (child: TGenericTreeNode);
 begin
 	child.SetParent(self);
 	children.AddValue(child);
 	HandleChildrenChanged;
 end;
 
-procedure TTreeNode.InsertChildBefore (child: TTreeNode);
+procedure TGenericTreeNode.InsertChildBefore (child: TGenericTreeNode);
 begin
 	if GetParent <> nil then
 		parent.InsertChild(child, GetIndex)
@@ -220,7 +208,7 @@ begin
 		AddChild(child);
 end;
 
-procedure TTreeNode.InsertChildAfter (child: TTreeNode);
+procedure TGenericTreeNode.InsertChildAfter (child: TGenericTreeNode);
 begin
 	if GetParent <> nil then
 		parent.InsertChild(child, GetIndex + 1)
@@ -228,12 +216,12 @@ begin
 		AddChild(child);
 end;
 
-procedure TTreeNode.InsertChild (child: TTreeNode; index: integer);
+procedure TGenericTreeNode.InsertChild (child: TGenericTreeNode; index: integer);
 begin
 	InsertChild(child, index, true);
 end;
 
-procedure TTreeNode.InsertChild (child: TTreeNode; index: integer; respectArrayBounds: boolean);
+procedure TGenericTreeNode.InsertChild (child: TGenericTreeNode; index: integer; respectArrayBounds: boolean);
 begin
 	child.SetParent(self);
 	
@@ -252,16 +240,16 @@ begin
 	HandleChildrenChanged;
 end;
 
-procedure TTreeNode.RemoveChild (child: TTreeNode);
+procedure TGenericTreeNode.RemoveChild (child: TGenericTreeNode);
 begin
 	child.SetParent(nil);
 	children.RemoveFirstValue(child);
 	HandleChildrenChanged;
 end;
 
-procedure TTreeNode.RemoveAllChildren;
+procedure TGenericTreeNode.RemoveAllChildren;
 var
-	child: TTreeNode;
+	child: TGenericTreeNode;
 begin
 	for pointer(child) in children do
 		child.SetParent(nil);
@@ -269,15 +257,15 @@ begin
 	HandleChildrenChanged;
 end;
 
-procedure TTreeNode.RemoveFromParent;
+procedure TGenericTreeNode.RemoveFromParent;
 begin
 	if parent <> nil then
 		parent.RemoveChild(self);
 end;
 
-function TTreeNode.ContainsChild (child: TTreeNode; deep: boolean): boolean;
+function TGenericTreeNode.ContainsChild (child: TGenericTreeNode; deep: boolean): boolean;
 var
-	_child: TTreeNode;
+	_child: TGenericTreeNode;
 begin
 	if deep then
 		begin
@@ -290,41 +278,36 @@ begin
 		result := children.ContainsValue(child);
 end;
 
-procedure TTreeNode.RemoveChild (index: integer);
+procedure TGenericTreeNode.RemoveChild (index: integer);
 var
-	child: TTreeNode;
+	child: TGenericTreeNode;
 begin
 	child := GetChild(index);
 	child.SetParent(nil);
 	children.RemoveIndex(index);
 end;
 
-procedure TTreeNode.HandleParentChanged;
+procedure TGenericTreeNode.HandleParentChanged;
 begin
 end;
 
-procedure TTreeNode.HandleChildrenChanged;
+procedure TGenericTreeNode.HandleChildrenChanged;
 begin
 end;
 
-procedure TTreeNode.HandleExpandStateChanged;
-begin
-end;
-
-procedure TTreeNode.CopyInstanceVariables (clone: TObject);
+procedure TGenericTreeNode.CopyInstanceVariables (clone: TObject);
 var
-	node: TTreeNode;
+	node: TGenericTreeNode;
 begin
 	inherited CopyInstanceVariables(clone);
 	
-	node := TTreeNode(clone);
+	node := TGenericTreeNode(clone);
 	
 	parent := node.parent;
 	children := TArray(node.children.Copy);
-	expanded := node.expanded;
 end;
 
-procedure TTreeNode.Initialize;
+procedure TGenericTreeNode.Initialize;
 begin
 	inherited Initialize;
 	
@@ -332,11 +315,17 @@ begin
 		children := TArray.Create;
 end;
 
-procedure TTreeNode.Deallocate;
+procedure TGenericTreeNode.Deallocate;
 begin
 	children.Release;
 	
 	inherited Deallocate;
+end;
+
+constructor TGenericTreeNode.Create (inValue: T);
+begin
+	value := inValue;
+	Initialize;
 end;
 
 end.

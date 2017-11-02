@@ -29,6 +29,8 @@ function SystemTime: double; inline;
 function MillisecondsSinceNow: double; inline;
 procedure SystemSleep (duration: single); 
 procedure FatalNotMainThread; inline;
+procedure Fatal (messageString: string); overload;
+procedure Fatal (condition: boolean; messageString: string); overload;
 
 implementation
 
@@ -69,10 +71,29 @@ begin
 end;	
 {$endif}	
 
+procedure Fatal (messageString: string);
+begin
+	Fatal(true, messageString);
+end;
+
+procedure Fatal (condition: boolean; messageString: string);
+begin
+	if condition then
+		begin
+			// NOTE: exceptions require the following breakpoints to be set in lldb
+			//b FPC_RAISEEXCEPTION
+			//b FPC_BREAK_ERROR
+			//raise Exception.Create(messageString);
+			writeln('***** Exception: ', messageString);
+			halt;
+			//b USystem.pas:88
+		end;
+end;
+
 procedure FatalNotMainThread; 
 begin
 	if MainThreadID <> GetCurrentThreadID then
-		raise Exception.Create('Not main thread');
+		Fatal('Not main thread');
 end;
 
 function GetMainThreadID: Longint; 

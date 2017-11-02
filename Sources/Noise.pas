@@ -87,7 +87,7 @@ end;
 
 function TNoise.GetValue (x, y, z: TNoiseFloat; octaves: integer; persistence: TNoiseFloat): TNoiseFloat;
 var
-	total: TNoiseFloat;
+	total: TNoiseFloat = 0;
 	frequency: TNoiseFloat = 1;
 	amplitude: TNoiseFloat = 1;
 	maxValue: TNoiseFloat = 0; // Used for normalizing result to 0.0 - 1.0

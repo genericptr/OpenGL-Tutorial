@@ -7,27 +7,34 @@ uses
 	SysUtils;
 
 type
-	generic TGenericBag<T> = class (specialize TGenericDictionary<T>)
-		public
-		type
-			TBagList = specialize TGenericArray<T>;
+	generic TGenericBag<T> = class (specialize TGenericDictionary<TObject>)
+		public type TBagList = specialize TGenericArray<T>;
 		public
 			function AddValue (key: TDictionaryKey; value: T): TBagList;
 			procedure RemoveValue (key: TDictionaryKey; value: T); overload;		
+			procedure RemoveIndex (key: TDictionaryKey; index: TArrayIndex);
 			
 			function ContainsValue (key: TDictionaryKey; value: T): boolean; overload;
-			function ContainsValue (value: T): boolean; override;
+			function ContainsValue (value: T): boolean; overload;
 			
 			function ListCount (key: TDictionaryKey): integer;
 			function GetList (key: TDictionaryKey): TBagList;
 			function GetLastValue (key: TDictionaryKey): T;
+			
+			procedure Sort (key: TDictionaryKey; comparator: TBagList.TComparator; context: pointer = nil);
+			
+			property BagList [const key: TDictionaryKey]: TBagList read GetList; default;	
+		private
+			function CompareValues (a, b: T): boolean;
 	end;
 
 type
 	TBag = specialize TGenericBag<TObject>;
 
 implementation
-
+uses
+	TypInfo;
+	
 function TGenericBag.ListCount (key: TDictionaryKey): integer;
 var
 	list: TBagList;
@@ -55,16 +62,23 @@ begin
 	result := TBagList(GetValue(Hash(key)));
 end;
 
-{function TGenericBag.GetValue (key: TDictionaryKey): T;
+procedure TGenericBag.Sort (key: TDictionaryKey; comparator: TBagList.TComparator; context: pointer = nil);
 var
 	list: TBagList;
 begin
-	list := TBagList(inherited GetValue(key));
-	if list = nil then
-		result := nil
-	else
-		result := list.GetLastValue;
-end;}
+	list := GetList(key);
+	if list <> nil then
+		list.Sort(comparator, context);
+end;
+
+procedure TGenericBag.RemoveIndex (key: TDictionaryKey; index: TArrayIndex);
+var
+	list: TBagList;
+begin
+	list := GetList(key);
+	if list <> nil then
+		list.RemoveIndex(index);
+end;
 
 procedure TGenericBag.RemoveValue (key: TDictionaryKey; value: T);
 var
@@ -92,6 +106,14 @@ begin
 	result := list;
 end;
 
+function TGenericBag.CompareValues (a, b: T): boolean;
+begin
+	if typeKind = tkClass then
+		result := TObjectPtr(@a)^.IsEqual(TObjectPtr(@b)^) 
+	else
+		result := a = b;
+end;
+
 function TGenericBag.ContainsValue (key: TDictionaryKey; value: T): boolean;
 var
 	list: TBagList;
@@ -113,6 +135,7 @@ var
 	i, b: TArrayIndex;
 	list: TBagList;
 begin
+	result := false;
 	for i := 0 to BucketCount - 1 do
 		begin
 			list := TBagList(GetValue(i));

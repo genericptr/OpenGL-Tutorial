@@ -7,7 +7,7 @@ uses
 	UGeometry, UValue, UString, UObject;
 
 type
-	TDictionaryKey = string;
+	TDictionaryKey = string[40];
 	TDictionaryKeyArray = array of TDictionaryKey;
 
 	generic TGenericDictionary<T> = class (TObject)
@@ -19,7 +19,9 @@ type
 				end;
 		private
 			type
-				TDictionaryEntryArray = array of TDictionaryEntry;
+				TDictionaryValuePtr = ^T;
+				TDictionaryEntryArray = array[0..0] of TDictionaryEntry;
+				TDictionaryEntryArrayPtr = ^TDictionaryEntryArray;
 				TDictionaryValueArray = array of T;
 				TDictionaryEnumerator = class
 					private
@@ -37,6 +39,7 @@ type
 			
 			{ Constructors }
 			constructor Create (elements: integer); overload;
+			constructor Create (pairs: array of const); overload;
 			constructor Create; overload;
 			constructor Instance;
 			
@@ -48,12 +51,12 @@ type
 			procedure RemoveAllValues; virtual;
 			
 			{ Getting }
-			function GetValue (key: TDictionaryKey): T; overload; virtual;
-			function GetValue (key: TDictionaryKey; out value): boolean; overload;
+			function GetValue (key: TDictionaryKey): T; inline; overload;
+			function GetValue (key: TDictionaryKey; out value): boolean; inline; overload;
+			function GetValuePtr (key: TDictionaryKey): Pointer; inline;
 
 			function GetAllKeys: TDictionaryKeyArray;
 			function GetAllValues: TDictionaryValueArray;
-			function GetAllEntries: TDictionaryEntryArray;
 			function GetEnumerator: TDictionaryEnumerator;
 			function Count: integer;
 			
@@ -69,7 +72,8 @@ type
 			procedure Deallocate; override;
 			procedure CopyInstanceVariables (clone: TObject); override;
 		private
-			bucket: TDictionaryEntryArray;
+			bucket: TDictionaryEntryArrayPtr;
+			totalElements: integer;
 			originalElements: integer;
 			hashesChanged: boolean;
 			valueCount: integer;
@@ -78,7 +82,8 @@ type
 			
 			function BucketCount: integer; inline;
 			function GetValue (index: integer): T; inline; overload;
-			function KeyOfValue (value: T): string; inline;
+			function GetKey (index: integer): TDictionaryKey; inline;
+			function KeyOfValue (value: T): TDictionaryKey; inline;
 			procedure ReleaseValue (index: integer); inline;
 			procedure RetainValue (value: T); inline;
 			function CompareValues (a, b: T): boolean; inline;
@@ -272,7 +277,7 @@ function TGenericDictionary.TDictionaryEnumerator.MoveNext: Boolean;
 var
 	count: integer;
 begin
-	count := length(root.bucket);
+	count := root.BucketCount;
 	if index = count then
 		exit(false);
 	while index < count do
@@ -295,12 +300,17 @@ end;
 {=============================================}
 function TGenericDictionary.BucketCount: integer;
 begin
-	result := length(bucket);
+	result := totalElements;
 end;
 
 function TGenericDictionary.GetValue (index: integer): T;
 begin
-	result := bucket[index].value;
+	result := bucket^[index].value;
+end;
+
+function TGenericDictionary.GetKey (index: integer): TDictionaryKey;
+begin
+	result := bucket^[index].key;
 end;
 
 function TGenericDictionary.CompareValues (a, b: T): boolean;
@@ -311,14 +321,14 @@ begin
 		result := a = b;
 end;
 
-function TGenericDictionary.KeyOfValue (value: T): string;
+function TGenericDictionary.KeyOfValue (value: T): TDictionaryKey;
 var
 	i: integer;
 begin
 	result := '';
 	for i := 0 to BucketCount - 1 do
-		if CompareValues(bucket[i].value, value) then
-			exit(bucket[i].key);
+		if CompareValues(GetValue(i), value) then
+			exit(GetKey(i));
 end;
 
 function TGenericDictionary.ContainsValue (value: T): boolean;
@@ -339,7 +349,7 @@ begin
 		begin
 			valueCount := 0;
 			for i := 0 to BucketCount - 1 do
-				if bucket[i].value <> Default(T) then
+				if GetValue(i) <> Default(T) then
 					valueCount += 1;
 			hashesChanged := false;
 		end;
@@ -352,8 +362,8 @@ var
 begin
 	index := Hash(key);
 	ReleaseValue(index);
-	bucket[index].key := '';
-	bucket[index].value := Default(T);
+	bucket^[index].key := '';
+	bucket^[index].value := Default(T);
 	//Rehash(BucketCount);
 end;
 
@@ -367,38 +377,47 @@ begin
 		for i := 0 to BucketCount - 1 do
 			ReleaseValue(i);
 	
-	// ??? shrink memory or clear?
-	FillChar(bucket[0], length(bucket) * sizeof(TDictionaryEntry), 0);
-	//SetLength(bucket, 0);
-	//Rehash(originalElements);
+	// NOTE: shrink memory or clear?
+	FillChar(bucket[0], BucketCount * sizeof(TDictionaryEntry), 0);
 end;
 
 procedure TGenericDictionary.Rehash (elements: integer);
 var
 	i: integer;
-	entries: TDictionaryEntryArray = nil;
-begin
+	entries: TDictionaryEntryArrayPtr = nil;
+	oldElemenents: integer;
+begin	
 	if elements = 0 then
-		raise Exception.Create('TGenericDictionary.Rehash can''t rehash to 0.');
+		Fatal('Rehash can''t rehash to 0.');
+	if elements = BucketCount then
+		Fatal('Rehashing dictionary to same size');
+		
 	if originalElements = 0 then
 		originalElements := elements;
 	
-	if Length(bucket) > 0 then
-		entries := System.Copy(bucket, 0, Length(bucket));
-	
-	// resize array
-	SetLength(bucket, elements);	
-	FillChar(bucket[0], elements * sizeof(TDictionaryEntry), 0);
-
-	// insert old entries again
-	for i := 0 to high(entries) do
-	if entries[i].value <> Default(T) then
+	oldElemenents := BucketCount;
+	if oldElemenents > 0 then
 		begin
-			//ReleaseValue(i);
-			SetValue(entries[i].key, entries[i].value);
+			// TODO: if we're not in a thread keep a global memory block for moving entities
+			// so we don't realloc new mem always
+			entries := TDictionaryEntryArrayPtr(GetMem(oldElemenents * Sizeof(TDictionaryEntry)));
+			Move(bucket[0], entries[0], SizeOf(TDictionaryEntry) * oldElemenents)
 		end;
 	
-	//writeln('rehash to ', Length(bucket));
+	// resize array
+	//writeln('rehash to ', elements);
+	ReAllocMem(bucket, elements * SizeOf(TDictionaryEntry));
+	FillChar(bucket[0], elements * sizeof(TDictionaryEntry), 0);
+	totalElements := elements;
+	
+	// insert old entries again
+	for i := 0 to oldElemenents - 1 do
+	if entries^[i].value <> Default(T) then
+		SetValue(entries^[i].key, entries^[i].value);
+	
+	if entries <> nil then
+		FreeMem(entries);
+		
 	hashesChanged := true;
 end;
 
@@ -412,7 +431,7 @@ var
 begin
 	for i := 1 to Length(key) do
 		hashval := kM * hashval + Ord(key[i]);
-	result := abs(hashval mod Length(bucket));
+	result := abs(hashval mod BucketCount);
 end;
 
 procedure TGenericDictionary.ReleaseValue (index: integer);
@@ -421,9 +440,9 @@ var
 begin
 	if weakRetain then
 		exit;
-	if (typeKind = tkClass) and (bucket[index].value <> Default(T)) then
+	if (typeKind = tkClass) and (GetKey(index) <> '') and (GetValue(index) <> Default(T)) then
 		begin
-			obj := TObjectPtr(@bucket[index].value)^;
+			obj := TObjectPtr(@bucket^[index].value)^;
 			obj.Release;
 		end;
 end;
@@ -451,8 +470,8 @@ begin
 	if value = Default(T) then
 		raise Exception.Create('TGenericDictionary.SetValue: value can''t be default.');
 	ReleaseValue(index);
-	bucket[index].key := key;
-	bucket[index].value := value;
+	bucket^[index].key := key;
+	bucket^[index].value := value;
 	RetainValue(value);
 	hashesChanged := true;
 end;
@@ -465,16 +484,16 @@ var
 begin
 	index := Hash(key);
 	// available location, set value
-	if bucket[index].value = Default(T) then
+	if GetValue(index) = Default(T) then
 		SetValue(index, key, value)
 	else
 		begin
 			// there is a collision because the key is not the same
 			// but the index is occupied by a value 
-			if bucket[index].key <> key then
+			if GetKey(index) <> key then
 				begin
-					//writeln('collision detected for ', key, ' grow to ', Length(bucket) * 2);
-					Rehash(trunc(Length(bucket) * kGrowSize));
+					//writeln('collision detected for ', key, ' grow to ', Trunc(BucketCount * kGrowSize));
+					Rehash(Trunc(BucketCount * kGrowSize));
 					SetValue(key, value);
 				end
 			else 
@@ -482,10 +501,6 @@ begin
 		end;
 end;
 
-function TGenericDictionary.GetAllEntries: TDictionaryEntryArray;
-begin
-	result := bucket;
-end;
 
 function TGenericDictionary.GetAllValues: TDictionaryValueArray;
 var
@@ -494,10 +509,10 @@ var
 begin
 	SetLength(result, 0);
 	for i := 0 to BucketCount - 1 do
-	if bucket[i].value <> Default(T) then
+	if GetValue(i) <> Default(T) then
 		begin
 			SetLength(result, Length(result) + 1);
-			result[next] := bucket[i].value;
+			result[next] := GetValue(i);
 			next += 1;
 		end;
 end;
@@ -507,17 +522,17 @@ var
 	i: integer;
 	next: integer = 0;
 begin
-	if length(bucket) = 0 then
+	if BucketCount = 0 then
 		begin
 			SetLength(result, 0);
 			exit;
 		end;
 	SetLength(result, 0);
 	for i := 0 to BucketCount - 1 do
-	if bucket[i].value <> Default(T) then
+	if GetValue(i) <> Default(T) then
 		begin
 			SetLength(result, Length(result) + 1);
-			result[next] := bucket[i].key;
+			result[next] := GetKey(i);
 			next += 1;
 		end;
 end;
@@ -539,13 +554,27 @@ function TGenericDictionary.GetValue (key: TDictionaryKey): T;
 var
 	entry: TDictionaryEntry;
 begin
-	if length(bucket) = 0 then
+	if BucketCount = 0 then
 		exit(Default(T));
-	entry := bucket[Hash(key)];
+	entry := bucket^[Hash(key)];
 	if entry.key = key then
 		result := entry.value
 	else
 		result := Default(T);
+end;
+
+function TGenericDictionary.GetValuePtr (key: TDictionaryKey): Pointer;
+var
+	entry: TDictionaryEntry;
+	hashedKey: integer;
+begin
+	if BucketCount = 0 then
+		exit(nil);
+	hashedKey := Hash(key);
+	if bucket^[hashedKey].key = key then
+		result := @bucket^[hashedKey].value
+	else
+		result := nil;
 end;
 
 procedure TGenericDictionary.CopyInstanceVariables (clone: TObject);
@@ -560,15 +589,15 @@ begin
 			Rehash(source.count);
 			
 			if weakRetain then
-				Move(source.bucket[0], bucket[0], Sizeof(TDictionaryEntry) * Length(bucket))
+				Move(source.bucket[0], bucket[0], Sizeof(TDictionaryEntry) * BucketCount)
 			else
 				begin
 					for i := 0 to source.BucketCount - 1 do
-					if source.bucket[i].key <> '' then
+					if source.bucket^[i].key <> '' then
 						begin
-							bucket[i].key := source.bucket[i].key;
+							bucket^[i].key := source.bucket^[i].key;
 							//bucket[i].value := source.bucket[i].value.Copy;
-							CopyObject(bucket[i].value, TObjectPtr(@source.bucket[i].value)^);
+							CopyObject(bucket^[i].value, TObjectPtr(@source.bucket^[i].value)^);
 						end;
 				end;
 		end;
@@ -576,7 +605,7 @@ end;
 
 procedure TGenericDictionary.Show;
 var
-	key: string;
+	key: TDictionaryKey;
 	value: T;
 begin
 	writeln('{');
@@ -586,28 +615,7 @@ begin
 			value := GetValue(key);
 			//GetValue(key).Show();
 			//http://www.freepascal.org/docs-html/rtl/typinfo/ttypekind.html
-			case typeKind of
-				tkClass:
-					begin
-						if value <> Default(T) then
-							TObjectPtr(@value)^.Show
-						else
-							writeln('default');
-					end;
-				tkPointer:
-					begin
-						if value <> Default(T) then
-							writeln(HexStr(@value))
-						else
-							writeln('default');
-					end;
-				tkRecord:
-					writeln('record');
-				//tkSString, tkLString, tkAString, tkWString:
-				//	writeln(PString(@value)^);
-				otherwise
-					writeln(PInteger(@value)^); // this is just a hack to print compiler types
-			end;
+			PrintValue(typeKind, @value);
 		end;
 	writeln('}');
 end;
@@ -652,6 +660,23 @@ begin
 		elements := 12;
 	Rehash(elements);
 	Initialize;
+end;
+
+constructor TGenericDictionary.Create (pairs: array of const);
+var
+	i: integer = 0;
+begin
+	Initialize;
+	// guess a best size
+	Rehash(Length(pairs) * 2);
+	while i < Length(pairs) do
+		begin
+			if pairs[i].vtype = vtChar then
+				SetValue(pairs[i].vchar, TDictionaryValuePtr(@pairs[i+1].VObject)^)
+			else if pairs[i].vtype = vtString then
+				SetValue(pairs[i].VString^, TDictionaryValuePtr(@pairs[i+1].VObject)^);
+			i += 2;
+		end;		
 end;
 
 {=============================================}

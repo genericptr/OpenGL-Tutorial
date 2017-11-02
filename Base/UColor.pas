@@ -9,9 +9,8 @@ uses
 
 type
 	TRGBA = record
-		//red, green, blue, alpha: TFloat;
-				
-		class function Make (r, g, b, a: TFloat): TRGBA; static; inline;
+		class function Make (r, g, b, a: TFloat): TRGBA; static; inline; overload;
+		class function Make (w, a: TFloat): TRGBA; static; inline; overload;
 		class function RedColor (r: TFloat = 1; g: TFloat = 0; b: TFloat = 0; a: TFloat = 1): TRGBA; static; inline;
 		class function GreenColor (r: TFloat = 0; g: TFloat = 1; b: TFloat = 0; a: TFloat = 1): TRGBA; static; inline;
 		class function BlueColor (r: TFloat = 0; g: TFloat = 0; b: TFloat = 1; a: TFloat = 1): TRGBA; static; inline;
@@ -35,6 +34,8 @@ type
 			0:
 				(red, green, blue, alpha: TFloat);
 			1:
+				(r, g, b, a: TFloat);
+			2:
 				(c: array[0..3] of TFloat);
 	end;
 
@@ -90,6 +91,14 @@ begin
 	result.red := r;
 	result.green := g;
 	result.blue := b;
+	result.alpha := a;
+end;
+
+class function  TRGBA.Make (w, a: TFloat): TRGBA;
+begin
+	result.red := w;
+	result.green := w;
+	result.blue := w;
 	result.alpha := a;
 end;
 

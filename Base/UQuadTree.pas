@@ -9,6 +9,7 @@ uses
 // http://www.codeproject.com/Articles/30535/A-Simple-QuadTree-Implementation-in-C		
 const
 	IQuadTreeItemUUID = 917682322;
+	kQuadTreeInternalArray = true;
 	
 type
 	TQuadTreeNode = class;
@@ -25,6 +26,7 @@ type
 	TQuadTreeQueryRawCallback = procedure (rect: TRect; item: TObject; context: pointer; var stop: boolean);
 
 	TQuadTreeNode = class (TObject)
+		private type TItemArray = TPointerArray;
 		public
 			{ Constructors }
 			constructor Create (size: TSize; _maxItems: integer = 1);
@@ -32,11 +34,11 @@ type
 			{ Accessors }
 			procedure SetSize (newValue: TSize);
 			
-			function GetParent: TQuadTreeNode;
-			function GetRoot: TQuadTreeNode;
-			function GetFrame: TRect;
+			function GetParent: TQuadTreeNode; inline;
+			function GetRoot: TQuadTreeNode; inline;
+			function GetFrame: TRect; inline;
 			
-			function IsPartitioned: boolean;
+			function IsPartitioned: boolean; inline;
 			
 			{ Methods }
 			procedure Insert (item: TQuadTreeItem);
@@ -45,11 +47,11 @@ type
 			procedure RemoveAll;
 			
 			{ Querying }
-			procedure Query (rect: TRect; var outItems: TPointerArray); overload;
-			procedure Query (rect: TRect; callback: TQuadTreeQueryCallback; context: pointer; var outItems: TPointerArray); overload;
+			procedure Query (rect: TRect; var outItems: TItemArray; managed: boolean = false); overload;
+			procedure Query (rect: TRect; callback: TQuadTreeQueryCallback; context: pointer; var outItems: TItemArray; managed: boolean = false); overload;
 			procedure Query (rect: TRect; callback: TQuadTreeQueryRawCallback; context: pointer); overload;
 			
-			procedure GetAllItems (var outItems: TPointerArray);
+			procedure GetAllItems (var outItems: TItemArray);
 			function FindItemNode (item: TQuadTreeItem): TQuadTreeNode;
 
 			{ Other }
@@ -72,10 +74,12 @@ type
 			frame: TRect;
 			partitioned: boolean;
 			maxItems: integer;
+			managedOutputItems: TItemArray;
 			
 			constructor Create (_parent: TQuadTreeNode; _frame: TRect; _maxItems: integer);
 			procedure QueryRaw (rect: TRect; callback: TQuadTreeQueryRawCallback; context: pointer; var stop: boolean);
 			
+			function EmptyItemsArray: TItemArray;
 			procedure RemoveItemAtIndex (index: integer);
 			procedure Partition;
 			function InsertInChild (item: TQuadTreeItem): boolean;
@@ -178,7 +182,7 @@ procedure TQuadTreeNode.Partition;
 var
 	i: integer = 0;
 begin
-	Fatal(frame.size.IsZero, 'Quad tree trying to partition empty node f='+frame.str);
+	Fatal(frame.size.IsZero, 'Quad tree trying to partition empty node f='+frame.str+' obj='+GetDebugString+'items='+IntToStr(items.Count));
 
 	topLeftNode := TQuadTreeNode.Create(self, RectMake(RectMinX(frame), RectMinY(frame), RectWidth(frame) / 2, RectHeight(frame) / 2), maxItems);
 	topRightNode := TQuadTreeNode.Create(self, RectMake(RectMidX(frame), RectMinY(frame), RectWidth(frame) / 2, RectHeight(frame) / 2), maxItems);
@@ -238,9 +242,9 @@ begin
 		end;
 end;
 
-procedure TQuadTreeNode.Query (rect: TRect; var outItems: TPointerArray);
+procedure TQuadTreeNode.Query (rect: TRect; var outItems: TItemArray; managed: boolean = false);
 begin
-	Query(rect, nil, nil, outItems);
+	Query(rect, nil, nil, outItems, managed);
 end;
 
 procedure TQuadTreeNode.QueryRaw (rect: TRect; callback: TQuadTreeQueryRawCallback; context: pointer; var stop: boolean);
@@ -285,7 +289,7 @@ begin
 	QueryRaw(rect, callback, context, stop);
 end;
 
-procedure TQuadTreeNode.Query (rect: TRect; callback: TQuadTreeQueryCallback; context: pointer; var outItems: TPointerArray);
+procedure TQuadTreeNode.Query (rect: TRect; callback: TQuadTreeQueryCallback; context: pointer; var outItems: TItemArray; managed: boolean = false);
 var
 	item: TObject;
 	itemRect: TRect;
@@ -299,7 +303,7 @@ begin
 		begin
 			for i := 0 to items.High do
 				begin
-					item := items.Values[i];
+					item := items[i];
 					itemRect := TQuadTreeItem(item.GetInterface(IQuadTreeItemUUID)).GetPositioningFrame(GetRoot);						
 					if emptyRect or itemRect.IntersectsRect(rect) then
 						begin
@@ -308,14 +312,24 @@ begin
 									if callback(item, context) then
 										begin
 											if outItems = nil then
-												outItems := TPointerArray.Instance;
+												begin
+													if managed then
+														outItems := GetRoot.EmptyItemsArray
+													else
+														outItems := TItemArray.Instance;
+												end;
 											outItems.AddValue(item);
 										end;
 								end
 							else
 								begin
 									if outItems = nil then
-										outItems := TPointerArray.Instance;
+										begin
+											if managed then
+												outItems := GetRoot.EmptyItemsArray
+											else
+												outItems := TItemArray.Instance;
+										end;
 									outItems.AddValue(item);
 								end;
 						end;
@@ -324,20 +338,20 @@ begin
 			// query all subtrees
 			if IsPartitioned then
 				begin
-					topLeftNode.Query(rect, callback, context, outItems);
-					topRightNode.Query(rect, callback, context, outItems);
-					bottomLeftNode.Query(rect, callback, context, outItems);
-					bottomRightNode.Query(rect, callback, context, outItems);
+					topLeftNode.Query(rect, callback, context, outItems, managed);
+					topRightNode.Query(rect, callback, context, outItems, managed);
+					bottomLeftNode.Query(rect, callback, context, outItems, managed);
+					bottomRightNode.Query(rect, callback, context, outItems, managed);
 				end;
 		end;
 end;
 
-procedure TQuadTreeNode.GetAllItems (var outItems: TPointerArray);
+procedure TQuadTreeNode.GetAllItems (var outItems: TItemArray);
 begin
 	if outItems = nil then
-		outItems := TPointerArray.Instance;
+		outItems := TItemArray.Instance;
 	
-	outItems.AddValuesFromArray(TPointerArray(items));
+	outItems.AddValuesFromArray(TItemArray(items));
 	
 	// query all subtrees
 	if IsPartitioned then
@@ -422,6 +436,17 @@ begin
 		end;
 end;
 
+function TQuadTreeNode.EmptyItemsArray: TItemArray;
+begin
+	if managedOutputItems = nil then
+		begin
+			managedOutputItems := TItemArray.Create;
+			managedOutputItems.SetGrowSize(32, true);
+		end;
+	managedOutputItems.RemoveAllValues;
+	result := managedOutputItems;
+end;
+
 procedure TQuadTreeNode.Initialize;
 begin
 	inherited Initialize;
@@ -432,6 +457,7 @@ end;
 procedure TQuadTreeNode.Deallocate;
 begin
 	RemoveAll;
+	ReleaseObject(managedOutputItems);
 	
 	inherited Deallocate;
 end;

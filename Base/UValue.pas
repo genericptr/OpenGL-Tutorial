@@ -4,7 +4,7 @@
 unit UValue;
 interface
 uses
-	SysUtils, UGeometry, UObject;
+	SysUtils, UGeometry, UTypes, UObject;
 
 {const
 	IComparableUUID = 110544543;

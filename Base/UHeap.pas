@@ -27,6 +27,8 @@ type
 			function Extract: IHeapItem; 
 			function Count: integer;
 			
+		protected
+			procedure Deallocate; override;
 		private
 			currentItemCount: integer;
 			items: TFixedArray;
@@ -34,7 +36,7 @@ type
 			procedure Swap (itemA, itemB: IHeapItem); 
 			procedure SortUp (item: IHeapItem); 
 			procedure SortDown (item: IHeapItem); 
-			function GetItem (index: integer): IHeapItem;
+			function GetItem (index: integer): IHeapItem; inline;
 	end;
 
 implementation
@@ -138,10 +140,16 @@ begin
 	currentItemCount += 1;
 end;
 
+procedure THeap.Deallocate; 
+begin
+	ReleaseObject(items);
+
+	inherited;
+end;
+
 constructor THeap.Create (maxHeapSize: integer);
 begin
 	items := TFixedArray.Create(maxHeapSize);
-	ManageObject(items);
 	Initialize;
 end;
 

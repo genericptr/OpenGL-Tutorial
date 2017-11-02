@@ -25,7 +25,7 @@ type
 	
 { The dispatch message parameter for all notification handlers }	
 type
-	NotificationDispatchMessage = record
+	TNotificationDispatchMessage = record
 		method: string;
 		notification: TNotification;
 	end;
@@ -38,14 +38,12 @@ type
 			class function DefaultCenter: TNotificationCenter;
 			
 			{ Posting Notifications }
-			procedure PostNotification (name: string; objct: pointer; userInfo: TObject); overload;
-			procedure PostNotification (name: string; objct: pointer); overload;
-			procedure PostNotification (name: string); overload;
+			procedure PostNotification (name: string; objct: pointer = nil; userInfo: TObject = nil); overload;
 			procedure PostNotification (notification: TNotification); overload;
 			
 			{ Observing Notifications }
-			procedure ObserveNotification (observer: TObject; name: string; withMethod: Pointer); overload;
-			procedure ObserveNotification (observer: TObject; name: string; withMethod: Pointer; objct: pointer); overload;
+			procedure ObserveNotification (observer: TObject; name: string; withMethod: Pointer; objct: pointer = nil); overload;
+			procedure ObserveNotification (observer: TObject; name: string; withMethod: string = ''; objct: pointer = nil); overload;
 			
 			procedure RemoveObserver (observer: TObject; notification: string); overload;
 			procedure RemoveEveryObserver (observer: TObject);
@@ -70,7 +68,8 @@ const
 type 
 	TNotificationHandler = class (TInvocation)
 		public
-			constructor Create (_action: pointer; _target: TObject; _notification: string; _object: pointer);
+			constructor Create (_action: pointer; _target: TObject; _notification: string; _object: pointer); overload;
+			constructor Create (_action: string; _target: TObject; _notification: string; _object: pointer); overload;
 			
 			function GetNotification: string;
 			function GetObject: pointer;
@@ -87,6 +86,15 @@ var
 {@! ___NOTIFICATION HANDLER___ } 
 {=============================================}
 constructor TNotificationHandler.Create (_action: pointer; _target: TObject; _notification: string; _object: pointer);
+begin
+	SetAction(_action);
+	SetTarget(_target);
+	notification := _notification;
+	obj := _object;
+	Initialize;
+end;
+
+constructor TNotificationHandler.Create (_action: string; _target: TObject; _notification: string; _object: pointer);
 begin
 	SetAction(_action);
 	SetTarget(_target);
@@ -183,7 +191,7 @@ begin
 		handlers.RemoveFirstValue(handler);
 end;
 
-procedure TNotificationCenter.PostNotification (name: string; objct: pointer; userInfo: TObject);
+procedure TNotificationCenter.PostNotification (name: string; objct: pointer = nil; userInfo: TObject = nil);
 var
 	handler: TNotificationHandler;
 	notification: TNotification;
@@ -194,22 +202,12 @@ begin
 			handler.Invoke(notification);
 end;
 
-procedure TNotificationCenter.PostNotification (name: string; objct: pointer);
-begin
-	PostNotification(name, objct, nil);
-end;
-
-procedure TNotificationCenter.PostNotification (name: string);
-begin
-	PostNotification(name, nil, nil);
-end;
-
 procedure TNotificationCenter.PostNotification (notification: TNotification);
 begin
 	PostNotification(notification.GetName, notification.GetObject, notification);
 end;
 
-procedure TNotificationCenter.ObserveNotification (observer: TObject; name: string; withMethod: pointer; objct: pointer);
+procedure TNotificationCenter.ObserveNotification (observer: TObject; name: string; withMethod: pointer; objct: pointer = nil);
 var
 	handler: TNotificationHandler;
 begin
@@ -218,9 +216,16 @@ begin
 	handler.Release;		
 end;
 
-procedure TNotificationCenter.ObserveNotification (observer: TObject; name: string; withMethod: Pointer);
+procedure TNotificationCenter.ObserveNotification (observer: TObject; name: string; withMethod: string = ''; objct: pointer = nil);
+var
+	handler: TNotificationHandler;
 begin
-	ObserveNotification(observer, name, withMethod, nil);
+	// assume method name is same as notification
+	if withMethod = '' then
+		withMethod := name;
+	handler := TNotificationHandler.Create(withMethod, observer, name, objct);
+	handlers.AddValue(handler);
+	handler.Release;		
 end;
 
 class function TNotificationCenter.DefaultCenter: TNotificationCenter;
